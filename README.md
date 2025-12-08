@@ -1,4 +1,18 @@
-# Merfolk - 极简 Mermaid 图表示预览扩展
+<div align="center">
+  <img src="./icon.png" alt="Merfolk Icon" width="128" height="128" />
+
+  <h1>Merfolk</h1>
+
+  <p>
+    <a href="https://github.com/straydragon/vscode-merfolk/actions/workflows/test.yml">
+      <img src="https://github.com/straydragon/vscode-merfolk/actions/workflows/test.yml/badge.svg" alt="Test" />
+    </a>
+    <a href="https://github.com/straydragon/vscode-merfolk/actions/workflows/release.yml">
+      <img src="https://github.com/straydragon/vscode-merfolk/actions/workflows/release.yml/badge.svg" alt="Release" />
+    </a>
+    <a href="https://open-vsx.org/extension/l8ng/vscode-merfolk"><img src="https://img.shields.io/open-vsx/v/l8ng/vscode-merfolk?label=Open%20VSX" alt="Open VSX" /></a>
+  </p>
+</div>
 
 Merfolk 是一个轻量级的 VS Code 扩展，专注于为 Mermaid 图表提供简洁、快速的预览功能。与其他 Mermaid 扩展不同，Merfolk 追求极简设计，无需外部依赖，启动速度快，为开发者提供纯净的图表示体验。
 
