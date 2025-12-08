@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: pnpm-lock.yaml
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: just install
+
+      - name: Lint and check types
+        run: just lint
+
+      - name: Build extension
+        run: just build
+
+      - name: Package VSIX
+        run: just package-vsix
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Rename VSIX with version
+        run: |
+          mv vscode-merfolk.vsix vscode-merfolk-${{ steps.version.outputs.version }}.vsix
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |-
+            ## Merfolk Extension ${{ steps.version.outputs.version }}
+
+            A minimal Mermaid diagram preview extension for VS Code.
+
+            ## Installation
+
+            1. Download the VSIX file from the Assets section below
+            2. Open VS Code
+            3. Go to Extensions → Install from VSIX...
+            4. Select the downloaded `vscode-merfolk-${{ steps.version.outputs.version }}.vsix` file
+
+            Or install from the marketplace: [straydragon.merfolk](https://marketplace.visualstudio.com/items?itemName=straydragon.merfolk)
+
+            ## Features
+
+            - Preview Mermaid diagrams in a dedicated panel
+            - Toggle inline preview for Mermaid diagrams in Markdown files
+            - Syntax highlighting for Mermaid files
+            - Support for `.mmd` and `.mermaid` file extensions
+            - Keyboard shortcuts for quick preview access
+
+            ## Changes
+
+            See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+
+            ---
+            🤖 Generated with [Claude Code](https://claude.com/claude-code)
+          files: |
+            vscode-merfolk-${{ steps.version.outputs.version }}.vsix
+          draft: false
+          prerelease: false
