@@ -1,0 +1,28 @@
+%% 基础流程图示例
+flowchart TD
+    Start([开始]) --> Input{需要输入?}
+    Input -->|是| GetUser[获取用户输入]
+    Input -->|否| Process[处理数据]
+
+    GetUser --> Validate{验证输入}
+    Validate -->|有效| Process
+    Validate -->|无效| ShowError[显示错误]
+    ShowError --> GetUser
+
+    Process --> CheckResult{检查结果}
+    CheckResult -->|成功| Success[显示成功]
+    CheckResult -->|失败| Retry[重试]
+    Retry --> Process
+
+    Success --> End([结束])
+
+    %% 样式定义
+    classDef startEnd fill:#4caf50,stroke:#388e3c,stroke-width:2px,color:#fff
+    classDef process fill:#2196f3,stroke:#1976d2,stroke-width:2px,color:#fff
+    classDef decision fill:#ff9800,stroke:#f57c00,stroke-width:2px,color:#fff
+    classDef error fill:#f44336,stroke:#d32f2f,stroke-width:2px,color:#fff
+
+    class Start,End startEnd
+    class GetUser,Process,Success process
+    class Input,Validate,CheckResult decision
+    class ShowError,Retry error

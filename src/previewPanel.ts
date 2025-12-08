@@ -1,0 +1,547 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+
+function getViewColumn(configValue: string): vscode.ViewColumn {
+    const activeEditor = vscode.window.activeTextEditor;
+    const activeColumn = activeEditor ? activeEditor.viewColumn : vscode.ViewColumn.One;
+
+    switch (configValue) {
+        case 'beside':
+            return activeColumn ? activeColumn + 1 : vscode.ViewColumn.Beside;
+        case 'right':
+            return vscode.ViewColumn.Three;
+        case 'left':
+            return vscode.ViewColumn.One;
+        case 'active':
+            return activeColumn || vscode.ViewColumn.One;
+        case 'one':
+            return vscode.ViewColumn.One;
+        case 'two':
+            return vscode.ViewColumn.Two;
+        case 'three':
+            return vscode.ViewColumn.Three;
+        default:
+            return vscode.ViewColumn.Beside;
+    }
+}
+
+export class PreviewPanel {
+    public static currentPanel: PreviewPanel | undefined;
+    private readonly _panel: vscode.WebviewPanel;
+    private _disposables: vscode.Disposable[] = [];
+    private readonly _extensionUri: vscode.Uri;
+    private _document: vscode.TextDocument;
+    private _updateTimeout: NodeJS.Timeout | undefined;
+
+    public static createOrShow(document: vscode.TextDocument, extensionUri: vscode.Uri) {
+        // Get user configuration for preview column
+        const config = vscode.workspace.getConfiguration('merfolk.preview');
+        const defaultColumnConfig = config.get<string>('defaultColumn', 'beside');
+        const targetColumn = getViewColumn(defaultColumnConfig);
+
+        // If we already have a panel, show it
+        if (PreviewPanel.currentPanel) {
+            PreviewPanel.currentPanel._panel.reveal(targetColumn);
+            PreviewPanel.currentPanel._document = document;
+            PreviewPanel.currentPanel._update();
+            return;
+        }
+
+        // Otherwise, create a new panel
+        const panel = vscode.window.createWebviewPanel(
+            PreviewPanel.viewType,
+            'Mermaid Preview',
+            targetColumn,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [
+                    vscode.Uri.joinPath(extensionUri, 'media')
+                ]
+            }
+        );
+
+        PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, document);
+    }
+
+    public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+        // When a panel is restored, we need a document - for now create empty one
+        const editor = vscode.window.activeTextEditor;
+        const document = editor ? editor.document : undefined;
+        if (document) {
+            PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, document);
+        }
+    }
+
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, document: vscode.TextDocument) {
+        this._panel = panel;
+        this._extensionUri = extensionUri;
+        this._document = document;
+
+        // Set the webview's initial html content
+        this._update();
+
+        // Listen for when the panel is disposed
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+
+        // Listen for when the active editor changes
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (editor && (editor.document.languageId === 'mermaid' || this.isMermaidFile(editor.document))) {
+                this._document = editor.document;
+                this._update();
+            }
+        }, null, this._disposables);
+
+        // Handle messages from the webview
+        this._panel.webview.onDidReceiveMessage(
+            async message => {
+                switch (message.command) {
+                    case 'openMermaidChart':
+                        await this._openMermaidChartFile(message.path);
+                        return;
+                    case 'exportPng':
+                    case 'exportSvg':
+                        vscode.window.showInformationMessage('Export functionality coming soon!');
+                        return;
+                }
+            },
+            undefined,
+            this._disposables
+        );
+
+        // Update on document changes with debouncing
+        vscode.workspace.onDidChangeTextDocument(event => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && event.document === editor.document && event.document === this._document) {
+                // Debounce updates to avoid excessive rendering
+                if (this._updateTimeout) {
+                    clearTimeout(this._updateTimeout);
+                }
+                this._updateTimeout = setTimeout(() => {
+                    this._update();
+                }, 300);
+            }
+        }, null, this._disposables);
+    }
+
+    private isMermaidFile(document: vscode.TextDocument): boolean {
+        const fileName = document.fileName.toLowerCase();
+        return fileName.endsWith('.mmd') || fileName.endsWith('.mermaid');
+    }
+
+    public dispose() {
+        PreviewPanel.currentPanel = undefined;
+
+        // Clear the update timeout
+        if (this._updateTimeout) {
+            clearTimeout(this._updateTimeout);
+            this._updateTimeout = undefined;
+        }
+
+        // Clean up our resources
+        this._panel.dispose();
+
+        while (this._disposables.length) {
+            const x = this._disposables.pop();
+            if (x) {
+                x.dispose();
+            }
+        }
+    }
+
+    private _update() {
+        const webview = this._panel.webview;
+        this._panel.title = `Mermaid Preview: ${path.basename(this._document.fileName)}`;
+        this._panel.webview.html = this._getHtmlForWebview(webview);
+
+        // Send the current content to the webview
+        const content = this._document.getText();
+        this._panel.webview.postMessage({
+            command: 'updateContent',
+            content: content,
+            fileName: this._document.fileName
+        });
+    }
+
+    private async _openMermaidChartFile(relativePath: string): Promise<void> {
+        try {
+            // Get the current file's directory
+            const currentFile = this._document.uri;
+            const currentDir = path.dirname(currentFile.fsPath);
+
+            // Resolve the relative path (similar to markdown link resolution)
+            const targetPath = path.resolve(currentDir, relativePath);
+
+            // Check if the file exists
+            const targetUri = vscode.Uri.file(targetPath);
+            try {
+                await vscode.workspace.fs.stat(targetUri);
+            } catch (error) {
+                vscode.window.showErrorMessage(`File not found: ${relativePath}`);
+                return;
+            }
+
+            // Open the file
+            const document = await vscode.workspace.openTextDocument(targetUri);
+
+            // Open the file in editor
+            await vscode.window.showTextDocument(document);
+
+            // If preview is not active, create/show it for the new document
+            if (!PreviewPanel.currentPanel) {
+                PreviewPanel.createOrShow(document, this._extensionUri);
+            } else {
+                PreviewPanel.currentPanel._document = document;
+                PreviewPanel.currentPanel._update();
+            }
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    private _getHtmlForWebview(webview: vscode.Webview) {
+        // Use local Mermaid.js file
+        const mermaidPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'mermaid.min.js');
+        const mermaidUri = webview.asWebviewUri(mermaidPathOnDisk);
+
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource};">
+    <title>Mermaid Preview</title>
+    <style>
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 20px;
+            margin: 0;
+        }
+        #container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #mermaid-diagram {
+            max-width: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            position: relative;
+        }
+        #mermaid-diagram.grabbing {
+            cursor: grabbing;
+        }
+        #mermaid-diagram svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+        }
+        .empty {
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #error {
+            color: var(--vscode-errorForeground);
+            background-color: var(--vscode-inputValidation-errorBackground);
+            border: 1px solid var(--vscode-inputValidation-errorBorder);
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: var(--vscode-font-family);
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: var(--vscode-editor-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .toolbar button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: var(--vscode-font-family);
+        }
+        .toolbar button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        .mermaid-link {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .mermaid-link:hover {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button onclick="zoomIn()">Zoom In</button>
+        <button onclick="zoomOut()">Zoom Out</button>
+        <button onclick="resetZoom()">Reset</button>
+        <button onclick="fitToScreen()">Fit to Screen</button>
+        <button onclick="exportSvg()">Export SVG</button>
+        <button onclick="exportPng()">Export PNG</button>
+    </div>
+    <div id="container">
+        <div id="mermaid-diagram"></div>
+        <div id="error" style="display: none;"></div>
+    </div>
+
+    <!-- Using local Mermaid.js -->
+    <script src="${mermaidUri}"></script>
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#bbdefb',
+                primaryTextColor: '#000',
+                primaryBorderColor: '#007bff',
+                lineColor: '#666',
+                secondaryColor: '#f8f9fa',
+                tertiaryColor: '#e9ecef'
+            },
+            fontFamily: 'var(--vscode-font-family)',
+            fontSize: 16,
+            securityLevel: 'loose'
+        });
+
+        const vscode = acquireVsCodeApi();
+        let currentContent = '';
+        let currentZoom = 1;
+        let currentPanX = 0;
+        let currentPanY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        async function renderMermaid(content) {
+            const element = document.getElementById('mermaid-diagram');
+            const errorDiv = document.getElementById('error');
+
+            // Clear previous content and errors
+            if (element) element.innerHTML = '';
+            if (errorDiv) {
+                errorDiv.textContent = '';
+                errorDiv.style.display = 'none';
+            }
+
+            if (!content.trim()) {
+                if (element) {
+                    element.innerHTML = '<div class="empty">No Mermaid content to display.</div>';
+                }
+                return;
+            }
+
+            if (!element) {
+                console.error('Mermaid container element not found');
+                return;
+            }
+
+            try {
+                // Parse the diagram first to catch syntax errors early
+                await mermaid.parse(content);
+
+                // Render the diagram
+                const { svg } = await mermaid.render('mermaid-svg', content);
+                element.innerHTML = svg;
+
+                // Apply current zoom and pan
+                applyTransform();
+
+                // Setup drag handlers
+                setupDragHandlers(element);
+
+                // Process MermaidChart links after rendering
+                processMermaidChartLinks();
+
+            } catch (error) {
+                const errorMessage = 'Syntax error: ' + (error.message || error);
+                if (errorDiv) {
+                    errorDiv.textContent = errorMessage;
+                    errorDiv.style.display = 'block';
+                }
+                element.innerHTML = '';
+                console.error('Mermaid rendering error:', error);
+            }
+        }
+
+        function setupDragHandlers(element) {
+            // Remove existing event listeners
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+
+            // Mouse events
+            newElement.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            // Wheel events for zoom with mouse position
+            newElement.addEventListener('wheel', handleWheel, { passive: false });
+        }
+
+        function handleMouseDown(e) {
+            if (e.button !== 0) return; // Only left click
+            isDragging = true;
+            dragStartX = e.clientX - currentPanX;
+            dragStartY = e.clientY - currentPanY;
+            document.getElementById('mermaid-diagram').classList.add('grabbing');
+            e.preventDefault();
+        }
+
+        function handleMouseMove(e) {
+            if (!isDragging) return;
+            currentPanX = e.clientX - dragStartX;
+            currentPanY = e.clientY - dragStartY;
+            applyTransform();
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+            document.getElementById('mermaid-diagram')?.classList.remove('grabbing');
+        }
+
+        function handleWheel(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = Math.max(0.3, Math.min(3, currentZoom * delta));
+
+                // Zoom towards mouse position
+                const scaleChange = newZoom - currentZoom;
+                currentPanX -= (x - currentPanX) * (scaleChange / currentZoom);
+                currentPanY -= (y - currentPanY) * (scaleChange / currentZoom);
+                currentZoom = newZoom;
+
+                applyTransform();
+            }
+        }
+
+        function processMermaidChartLinks() {
+            // Find all elements with MermaidChart links (look for href attributes starting with MermaidChart:)
+            const links = document.querySelectorAll('[href*="MermaidChart:"]');
+
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href.startsWith('MermaidChart:')) {
+                    // Extract the path after "MermaidChart:"
+                    const path = href.substring('MermaidChart:'.length);
+
+                    // Make it look clickable and styled
+                    link.style.cursor = 'pointer';
+                    link.className += ' mermaid-link';
+
+                    // Remove the original href to prevent default navigation
+                    link.removeAttribute('href');
+
+                    // Add click handler
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Send message to extension to open the file
+                        vscode.postMessage({
+                            command: 'openMermaidChart',
+                            path: path
+                        });
+                    });
+                }
+            });
+        }
+
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom * 1.2, 3);
+            applyTransform();
+        }
+
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom / 1.2, 0.3);
+            applyTransform();
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            currentPanX = 0;
+            currentPanY = 0;
+            applyTransform();
+        }
+
+        function fitToScreen() {
+            const container = document.getElementById('mermaid-diagram');
+            const svg = container?.querySelector('svg');
+            if (!svg || !container) return;
+
+            const containerRect = container.getBoundingClientRect();
+            const svgRect = svg.getBoundingClientRect();
+
+            const scaleX = containerRect.width / svgRect.width;
+            const scaleY = containerRect.height / svgRect.height;
+            currentZoom = Math.min(scaleX, scaleY, 1) * 0.9; // 90% of container
+
+            // Center the diagram
+            currentPanX = (containerRect.width - svgRect.width * currentZoom) / 2;
+            currentPanY = (containerRect.height - svgRect.height * currentZoom) / 2;
+
+            applyTransform();
+        }
+
+        function applyTransform() {
+            const svg = document.querySelector('#mermaid-diagram svg');
+            if (svg) {
+                svg.style.transform = \`translate(\${currentPanX}px, \${currentPanY}px) scale(\${currentZoom})\`;
+                svg.style.width = \`auto\`;
+                svg.style.height = \`auto\`;
+            }
+        }
+
+        function exportSvg() {
+            vscode.postMessage({ command: 'exportSvg' });
+        }
+
+        function exportPng() {
+            vscode.postMessage({ command: 'exportPng' });
+        }
+
+        // Listen for messages from the extension
+        window.addEventListener('message', async event => {
+            const message = event.data;
+            switch (message.command) {
+                case 'updateContent':
+                    currentContent = message.content;
+                    await renderMermaid(currentContent);
+                    break;
+            }
+        });
+
+        // Initial render
+        renderMermaid('').catch(console.error);
+    </script>
+</body>
+</html>`;
+    }
+
+    public static readonly viewType = 'mermaid.preview';
+}

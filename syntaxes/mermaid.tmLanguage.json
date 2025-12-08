@@ -1,0 +1,168 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Mermaid",
+  "scopeName": "source.mermaid",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#identifiers"
+    },
+    {
+      "include": "#arrows"
+    },
+    {
+      "include": "#nodes"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.percentage.mermaid",
+          "match": "^\\s*%%.*$"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.mermaid",
+          "match": "\\b(graph|subgraph|flowchart|sequenceDiagram|classDiagram|stateDiagram|stateDiagram-v2|erDiagram|journey|gantt|pie|gitgraph|C4Context|block|architecture|mindmap|timeline|sankey|quadrantChart|requirementDiagram|c4|C4)\\b"
+        },
+        {
+          "name": "keyword.control.mermaid",
+          "match": "\\b(end|class|actor|participant|as|note|loop|alt|else|opt|par|and|rect|state|fork|if|then|else|click|href|callback|target|linkStyle|interpolate|curveBasis|curveLinear|curveStepBefore|curveStepAfter|curveMonotoneX|curveMonotoneY|curveCatmullRom|curveNatural)\\b"
+        },
+        {
+          "name": "storage.type.mermaid",
+          "match": "\\b(TB|TD|BT|RL|LR|left|right|top|bottom|center|start|stop|fork|join)\\b"
+        },
+        {
+          "name": "constant.numeric.mermaid",
+          "match": "\\b([0-9]+|\\*+)\\b"
+        },
+        {
+          "name": "entity.name.tag.mermaid",
+          "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.mermaid",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.mermaid",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.mermaid",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.mermaid",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.mermaid",
+          "match": "[a-zA-Z_][a-zA-Z0-9_]*"
+        }
+      ]
+    },
+    "arrows": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.mermaid",
+          "match": "(-->|-->o|-->x|->>|-->>|---|--|\\.->|\\.-\\.|\\.->>|\\.->>|\\..->|\\..->>|\\.\\.->|\\.\\.->>|<-->|<--o|<--x|<-->>|<--|<\\.\\.|<\\.->|<\\.->>|<\\..->|<\\..->>|<\\.\\.->|<\\.\\.->>|==>|==|\\.\\.|\\.\\.|\\.-\\.|\\.-\\.|===|\\*\\*-|-\\*-|==\\*|==\\*=|==x|==o|--x|--o|==>|===|\\*-\\*|o--o|x--x|<\\||\\|>|x|\\*)"
+        }
+      ]
+    },
+    "nodes": {
+      "patterns": [
+        {
+          "name": "meta.node.rectangle.mermaid",
+          "match": "\\[([^\\]]+)\\]",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.mermaid"
+            }
+          }
+        },
+        {
+          "name": "meta.node.stadium.mermaid",
+          "match": "\\(([^(]+)\\)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.mermaid"
+            }
+          }
+        },
+        {
+          "name": "meta.node.circle.mermaid",
+          "match": "\\((([^)]+)\\))",
+          "captures": {
+            "2": {
+              "name": "entity.name.function.mermaid"
+            }
+          }
+        },
+        {
+          "name": "meta.node.rhombus.mermaid",
+          "match": "\\{([^}]+)\\}",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.mermaid"
+            }
+          }
+        },
+        {
+          "name": "meta.node.hexagon.mermaid",
+          "match": "\\{\\{([^}]+)\\}\\}",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.mermaid"
+            }
+          }
+        },
+        {
+          "name": "meta.node.parallelogram.mermaid",
+          "match": "[/][/]",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.tag.mermaid"
+            }
+          }
+        },
+        {
+          "name": "meta.node.trapezoid.mermaid",
+          "match": "[/][\\[]",
+          "captures": {
+            "0": {
+              "name": "punctuation.definition.tag.mermaid"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+%% 测试代码注释中的 MermaidChart 链接功能
+
+flowchart TD
+    A[开始测试] --> B[查看代码注释]
+
+    %% 测试链接
+    B --> C[<a href="MermaidChart:python-example.py">Python 示例</a>]
+    B --> D[<a href="MermaidChart:javascript-example.js">JavaScript 示例</a>]
+    B --> E[<a href="MermaidChart:rust-example.rs">Rust 示例</a>]
+    B --> F[<a href="MermaidChart:golang-example.go">Golang 示例</a>]
+    B --> G[<a href="MermaidChart:typescript-example.ts">TypeScript 示例</a>]
+
+    C --> H[查看注释中的链接]
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+
+    H --> I[点击链接测试]
+    I --> J[文件自动打开]
+    J --> K[测试完成]
+
+    %% 注意事项：
+    %% 1. 打开 .py, .js, .rs, .go, .ts 文件查看代码注释
+    %% 2. 预览面板会显示"代码注释中的链接"部分
+    %% 3. 点击链接可以跳转到对应的 Mermaid 文件

@@ -1,0 +1,81 @@
+%% 微服务架构图
+graph TB
+    subgraph "客户端层"
+        Web[Web应用]
+        Mobile[移动应用]
+    end
+
+    subgraph "API网关层"
+        Gateway[API Gateway]
+        LB[负载均衡器]
+    end
+
+    subgraph "业务服务层"
+        UserService[用户服务]
+        OrderService[订单服务]
+        PaymentService[支付服务]
+        NotificationService[通知服务]
+        InventoryService[库存服务]
+    end
+
+    subgraph "数据层"
+        UserDB[(用户数据库)]
+        OrderDB[(订单数据库)]
+        PaymentDB[(支付数据库)]
+        Redis[(Redis缓存)]
+        MessageQueue[消息队列]
+    end
+
+    subgraph "监控与日志"
+        Monitoring[监控系统]
+        Logging[日志系统]
+        Tracing[链路追踪]
+    end
+
+    %% 连接关系
+    Web --> Gateway
+    Mobile --> Gateway
+    Gateway --> LB
+
+    LB --> UserService
+    LB --> OrderService
+    LB --> PaymentService
+    LB --> NotificationService
+    LB --> InventoryService
+
+    UserService --> UserDB
+    UserService --> Redis
+    OrderService --> OrderDB
+    OrderService --> MessageQueue
+    PaymentService --> PaymentDB
+    PaymentService --> MessageQueue
+    NotificationService --> MessageQueue
+    InventoryService --> Redis
+
+    %% 服务间通信
+    OrderService -.-> UserService
+    OrderService -.-> PaymentService
+    OrderService -.-> InventoryService
+    PaymentService -.-> NotificationService
+
+    %% 监控连接
+    Monitoring -.-> UserService
+    Monitoring -.-> OrderService
+    Monitoring -.-> PaymentService
+    Logging -.-> UserService
+    Logging -.-> OrderService
+    Logging -.-> PaymentService
+    Tracing -.-> Gateway
+
+    %% 样式定义
+    classDef client fill:#e3f2fd,stroke:#2196f3
+    classDef gateway fill:#f3e5f5,stroke:#9c27b0
+    classDef service fill:#e8f5e8,stroke:#4caf50
+    classDef data fill:#fff3e0,stroke:#ff9800
+    classDef monitor fill:#fce4ec,stroke:#e91e63
+
+    class Web,Mobile client
+    class Gateway,LB gateway
+    class UserService,OrderService,PaymentService,NotificationService,InventoryService service
+    class UserDB,OrderDB,PaymentDB,Redis,MessageQueue data
+    class Monitoring,Logging,Tracing monitor

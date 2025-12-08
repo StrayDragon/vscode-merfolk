@@ -1,0 +1,37 @@
+%% Merfolk 扩展示例导航
+flowchart TD
+    Start[开始探索] --> ChooseType{选择示例类型}
+
+    ChooseType -->|基础图示| Basic[<a href="MermaidChart:../basic/flowchart.mmd">流程图</a>]
+    ChooseType -->|基础图示| Basic2[<a href="MermaidChart:../basic/sequence.mmd">序列图</a>]
+    ChooseType -->|基础图示| Basic3[<a href="MermaidChart:../basic/class-diagram.mmd">类图</a>]
+
+    ChooseType -->|高级图示| Advanced[<a href="MermaidChart:../advanced/microservices.mmd">微服务架构</a>]
+    ChooseType -->|高级图示| Advanced2[<a href="MermaidChart:../advanced/state-machine.mmd">状态机</a>]
+
+    ChooseType -->|工作流| Workflow1[<a href="MermaidChart:ci-cd-pipeline.mmd">CI/CD 流水线</a>]
+    ChooseType -->|工作流| Workflow2[<a href="MermaidChart:code-review.mmd">代码审查流程</a>]
+
+    ChooseType -->|架构设计| Arch1[<a href="MermaidChart:../architecture/system-design.mmd">系统架构</a>]
+    ChooseType -->|架构设计| Arch2[<a href="MermaidChart:../architecture/database-schema.mmd">数据库设计</a>]
+
+    %% 说明
+    Start -.-> Note[点击带链接的节点导航到相应示例]
+    Note -.-> More[更多示例正在开发中...]
+
+    %% 样式
+    classDef start fill:#4caf50,stroke:#388e3c,color:#fff
+    classDef choice fill:#ff9800,stroke:#f57c00,color:#fff
+    classDef basic fill:#2196f3,stroke:#1976d2,color:#fff
+    classDef advanced fill:#9c27b0,stroke:#7b1fa2,color:#fff
+    classDef workflow fill:#ff5722,stroke:#d84315,color:#fff
+    classDef architecture fill:#795548,stroke:#5d4037,color:#fff
+    classDef note fill:#607d8b,stroke:#455a64,color:#fff
+
+    class Start start
+    class ChooseType choice
+    class Basic,Basic2,Basic3 basic
+    class Advanced,Advanced2 advanced
+    class Workflow1,Workflow2 workflow
+    class Arch1,Arch2 architecture
+    class Note,More note

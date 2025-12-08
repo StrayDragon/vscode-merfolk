@@ -1,0 +1,43 @@
+%% 基础类图示例 - 简单的用户管理系统
+classDiagram
+    class User {
+        -id: String
+        -username: String
+        -email: String
+        -password: String
+        -createdAt: Date
+        +login(): Boolean
+        +logout(): void
+        +updateProfile(): void
+    }
+
+    class UserService {
+        -database: Database
+        +createUser(): User
+        +getUserById(): User
+        +updateUser(): Boolean
+        +deleteUser(): Boolean
+    }
+
+    class UserRepository {
+        +findById(): User
+        +findByEmail(): User
+        +save(): Boolean
+        +delete(): Boolean
+    }
+
+    class Database {
+        +connect(): Connection
+        +disconnect(): void
+        +query(): ResultSet
+    }
+
+    User "1" -- "*" UserService : uses
+    UserService "1" -- "1" UserRepository : manages
+    UserRepository "1" -- "1" Database : queries
+    UserService "1" -- "1" Database : connects to
+
+    note for User "用户实体类"
+    note for UserService "业务逻辑层"
+    note for UserRepository "数据访问层"
+    note for Database "数据库抽象"

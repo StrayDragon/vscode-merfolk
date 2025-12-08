@@ -1,0 +1,29 @@
+{
+  "comments": {
+    "lineComment": "%%",
+    "blockComment": ["%%", "%%"]
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""],
+    ["'", "'"]
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""],
+    ["'", "'"]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(graph|subgraph|class|stateDiagram|sequenceDiagram|gantt|pie|journey|gitgraph|C4Context|flowchart|erDiagram|mindmap|timeline|sankey|block|architecture)\\b",
+    "decreaseIndentPattern": "^\\s*end\\b"
+  }
+}

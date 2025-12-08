@@ -1,0 +1,33 @@
+%% 基础序列图示例 - 用户登录流程
+sequenceDiagram
+    participant User as 用户
+    participant Frontend as 前端
+    participant API as API服务器
+    participant DB as 数据库
+    participant Cache as 缓存
+
+    User->>Frontend: 输入用户名和密码
+    Frontend->>Frontend: 客户端验证
+    Frontend->>API: POST /api/login
+
+    API->>Cache: 检查缓存中的用户信息
+    alt 缓存命中
+        Cache-->>API: 返回用户信息
+    else 缓存未命中
+        API->>DB: 查询用户表
+        DB-->>API: 返回用户数据
+        API->>Cache: 存储到缓存
+    end
+
+    API->>API: 验证密码
+    alt 密码正确
+        API->>API: 生成JWT Token
+        API-->>Frontend: 返回Token和用户信息
+        Frontend->>Frontend: 存储Token
+        Frontend-->>User: 登录成功，跳转首页
+    else 密码错误
+        API-->>Frontend: 返回错误信息
+        Frontend-->>User: 显示错误提示
+    end
+
+    Note over User,Cache: 整个登录过程在2秒内完成

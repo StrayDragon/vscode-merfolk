@@ -1,0 +1,69 @@
+%% 数据库ER图
+erDiagram
+    USERS {
+        int id PK
+        string username
+        string email
+        string password_hash
+        datetime created_at
+        datetime updated_at
+    }
+
+    PRODUCTS {
+        int id PK
+        string name
+        text description
+        decimal price
+        int stock_quantity
+        int category_id FK
+        datetime created_at
+    }
+
+    CATEGORIES {
+        int id PK
+        string name
+        string description
+        int parent_id FK
+    }
+
+    ORDERS {
+        int id PK
+        int user_id FK
+        decimal total_amount
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+
+    ORDER_ITEMS {
+        int id PK
+        int order_id FK
+        int product_id FK
+        int quantity
+        decimal unit_price
+    }
+
+    PAYMENTS {
+        int id PK
+        int order_id FK
+        decimal amount
+        string payment_method
+        string status
+        datetime created_at
+    }
+
+    %% 关系定义
+    USERS ||--o{ ORDERS : "places"
+    PRODUCTS ||--o{ ORDER_ITEMS : "contains"
+    CATEGORIES ||--o{ PRODUCTS : "categorizes"
+    CATEGORIES ||--o{ CATEGORIES : "parent_of"
+    ORDERS ||--o{ ORDER_ITEMS : "contains"
+    ORDERS ||--o{ PAYMENTS : "has"
+
+    %% 注释
+    note for USERS "用户信息表"
+    note for PRODUCTS "产品信息表"
+    note for CATEGORIES "产品分类表"
+    note for ORDERS "订单表"
+    note for ORDER_ITEMS "订单明细表"
+    note for PAYMENTS "支付记录表"

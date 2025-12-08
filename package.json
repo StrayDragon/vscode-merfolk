@@ -1,7 +1,7 @@
 {
   "name": "vscode-merfolk",
-  "displayName": "vscode-merfolk",
-  "description": "mermaid graph edit, preview and llm friendly connections integrated",
+  "displayName": "Merfolk",
+  "description": "Minimal Mermaid diagram preview extension",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.106.1"
@@ -9,13 +9,150 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/straydragon/vscode-merfolk"
+  },
+  "publisher": "straydragon",
+  "license": "MIT",
+  "icon": "icon.png",
+  "activationEvents": [
+    "onCommand:mermaid.preview",
+    "onCommand:mermaid.previewInline",
+    "onLanguage:mermaid",
+    "onLanguage:markdown",
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:python",
+    "onLanguage:java",
+    "onLanguage:go",
+    "onLanguage:rust",
+    "onLanguage:cpp",
+    "onLanguage:c",
+    "onLanguage:csharp"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Merfolk",
+      "properties": {
+        "merfolk.preview.defaultColumn": {
+          "type": "string",
+          "enum": [
+            "beside",
+            "right",
+            "left",
+            "active",
+            "one",
+            "two",
+            "three"
+          ],
+          "default": "beside",
+          "description": "Controls where Mermaid file previews open by default",
+          "enumDescriptions": [
+            "Open preview in the column beside the current editor",
+            "Open preview in the rightmost column",
+            "Open preview in the leftmost column",
+            "Open preview in the current editor column",
+            "Open preview in column one",
+            "Open preview in column two",
+            "Open preview in column three"
+          ]
+        },
+        "merfolk.inlinePreview.defaultColumn": {
+          "type": "string",
+          "enum": [
+            "beside",
+            "right",
+            "left",
+            "active",
+            "one",
+            "two",
+            "three"
+          ],
+          "default": "right",
+          "description": "Controls where Mermaid inline previews open by default",
+          "enumDescriptions": [
+            "Open preview in the column beside the current editor",
+            "Open preview in the rightmost column",
+            "Open preview in the leftmost column",
+            "Open preview in the current editor column",
+            "Open preview in column one",
+            "Open preview in column two",
+            "Open preview in column three"
+          ]
+        }
+      }
+    },
     "commands": [
       {
-        "command": "vscode-merfolk.helloWorld",
-        "title": "Hello World"
+        "command": "mermaid.preview",
+        "title": "Mermaid: Open Preview",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "mermaid.previewInline",
+        "title": "Mermaid: Toggle Inline Preview",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "mermaidChart.preview",
+        "title": "Preview MermaidChart Diagram"
+      },
+      {
+        "command": "mermaidChart.openFile",
+        "title": "Open MermaidChart File"
+      },
+      {
+        "command": "mermaidChart.refreshCodeLens",
+        "title": "Mermaid: Refresh CodeLens"
+      }
+    ],
+    "languages": [
+      {
+        "id": "mermaid",
+        "aliases": ["Mermaid", "mermaid"],
+        "extensions": [".mmd", ".mermaid"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mermaid",
+        "scopeName": "source.mermaid",
+        "path": "./syntaxes/mermaid.tmLanguage.json"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "mermaid.preview",
+          "when": "resourceLangId == mermaid",
+          "group": "navigation"
+        },
+        {
+          "command": "mermaid.previewInline",
+          "when": "resourceLangId == markdown",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "mermaid.preview",
+          "when": "resourceLangId == mermaid"
+        },
+        {
+          "command": "mermaid.previewInline",
+          "when": "resourceLangId == markdown"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "mermaid.preview",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "resourceLangId == mermaid"
       }
     ]
   },
