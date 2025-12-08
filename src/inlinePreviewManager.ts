@@ -186,7 +186,7 @@ export class InlinePreviewManager {
                 enableScripts: true,
                 retainContextWhenHidden: true,
                 localResourceRoots: [
-                    vscode.Uri.joinPath(this._extensionUri!, 'media')
+                    vscode.Uri.joinPath(this._extensionUri!, 'assets')
                 ]
             }
         );
@@ -229,7 +229,7 @@ export class InlinePreviewManager {
     }
 
     private _getWebviewContent(blocks: MermaidBlock[]): string {
-        const mermaidPathOnDisk = vscode.Uri.joinPath(this._extensionUri!, 'media', 'mermaid.min.js');
+        const mermaidPathOnDisk = vscode.Uri.joinPath(this._extensionUri!, 'assets', 'mermaid.min.js');
         const mermaidUri = this._webviewPanel!.webview.asWebviewUri(mermaidPathOnDisk);
 
         return `<!DOCTYPE html>

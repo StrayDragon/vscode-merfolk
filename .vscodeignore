@@ -38,7 +38,7 @@ examples/**
 *.jpeg
 *.gif
 *.svg
-!media/mermaid.min.js
+!assets/mermaid.min.js
 !icon.png
 
 # Development directories

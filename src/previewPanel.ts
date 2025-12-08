@@ -56,7 +56,7 @@ export class PreviewPanel {
                 enableScripts: true,
                 retainContextWhenHidden: true,
                 localResourceRoots: [
-                    vscode.Uri.joinPath(extensionUri, 'media')
+                    vscode.Uri.joinPath(extensionUri, 'assets')
                 ]
             }
         );
@@ -202,7 +202,7 @@ export class PreviewPanel {
 
     private _getHtmlForWebview(webview: vscode.Webview) {
         // Use local Mermaid.js file
-        const mermaidPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'mermaid.min.js');
+        const mermaidPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'assets', 'mermaid.min.js');
         const mermaidUri = webview.asWebviewUri(mermaidPathOnDisk);
 
         return `<!DOCTYPE html>
