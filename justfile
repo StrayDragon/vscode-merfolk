@@ -28,14 +28,14 @@ package-vsix:
     set -e
     echo "📦 Packaging vscode-merfolk extension as VSIX..."
 
-    # Package the extension
+    # Package the extension with a consistent name (no version in filename)
     echo "📦 Creating VSIX package..."
-    npx vsce package
+    npx vsce package --out vscode-merfolk.vsix
 
     echo "✅ VSIX package created successfully!"
 
     # List the created VSIX file
-    ls -la *.vsix 2>/dev/null || echo "No VSIX file found in current directory"
+    ls -la vscode-merfolk.vsix 2>/dev/null || echo "No VSIX file found in current directory"
 
 # Run tests (placeholder for future test implementation)
 test:
