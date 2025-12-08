@@ -1,100 +1,125 @@
-# Merfolk - Minimal Mermaid Extension
+# Merfolk - 极简 Mermaid 图表示预览扩展
 
-一个极简的 Mermaid 图表预览 VSCode 扩展，去除了官方插件中的冗余功能。
+Merfolk 是一个轻量级的 VS Code 扩展，专注于为 Mermaid 图表提供简洁、快速的预览功能。与其他 Mermaid 扩展不同，Merfolk 追求极简设计，无需外部依赖，启动速度快，为开发者提供纯净的图表示体验。
 
-## 功能特性
+## 主要功能
 
-- ✅ 基础的 Mermaid 图表预览
-- ✅ 支持 `.mmd` 和 `.mermaid` 文件
-- ✅ 语法高亮
-- ✅ 实时预览更新
-- ✅ **MermaidLocal 链接支持** - 可以在不同 Mermaid 文件间导航
-- ✅ **可配置的预览打开位置** - 自定义预览面板的默认打开位置
+### 专用预览面板
+- 打开 `.mmd` 或 `.mermaid` 文件后，使用 `Ctrl+Shift+V`（Mac 上为 `Cmd+Shift+V`）快速打开专用预览面板
+- 预览面板支持多种位置配置（当前编辑器旁边、最左侧、最右侧等）
+- 当切换到其他 Mermaid 文件时，预览面板会自动更新
 
-## MermaidLocal 链接功能
+### 内联预览（Markdown 文件）
+- 在 Markdown 文件中使用 `Ctrl+Shift+V` 快速切换 Mermaid 图表的内联预览
+- 适合在编写技术文档时即时查看图表效果
 
-使用 `MermaidLocal:` 前缀来创建指向其他本地 Mermaid 文件的链接：
+### MermaidChart 链接导航
+Merfolk 的核心特性：支持在图表中创建指向其他 Mermaid 文件的链接，实现跨文件的图表导航。
 
 ```mermaid
 flowchart TD
-    A[Start] --> B{选择类型}
-    B -->|子图| C[<a href="MermaidLocal:subgraph.mmd">打开子图示例</a>]
-    B -->|序列图| D[<a href="MermaidLocal:sequence.mmd">查看序列图</a>]
+    A[开始项目] --> B[查看架构图]
+    B --> C[<a href="MermaidChart:architecture/system-design.mmd">系统架构</a>]
+    C --> D[<a href="MermaidChart:workflows/ci-cd.mmd">CI/CD 流程</a>]
 ```
 
-路径解析类似于 Markdown，支持相对路径引用。
+- 支持 HTML 链接格式：`<a href="MermaidChart:path/to/file.mmd">链接文本</a>`
+- 在任何支持的文件类型中，Merfolk 都会检测 MermaidChart 链接并显示 CodeLens 操作
+- 点击 "Preview" 直接在新面板中打开目标图表
+- 点击 "Open File" 打开对应的源文件
 
-## 使用方法
+### 语法高亮
+- 内置 Mermaid 语法高亮支持
+- 支持 `.mmd` 和 `.mermaid` 文件扩展名
 
-1. 打开 `.mmd` 或 `.mermaid` 文件
-2. 使用以下任一方式打开预览：
-   - 按 `Ctrl+Shift+V` (Windows/Linux) 或 `Cmd+Shift+V` (Mac)
-   - 点击编辑器标题栏的预览图标
-   - 从命令面板选择 "Mermaid: Open Preview"
+## 为什么选择 Merfolk？
 
-### 配置选项
+### 与官方 Mermaid Preview 扩展的区别
 
-可以通过 VSCode 设置自定义预览行为：
+| 特性 | Merfolk | 官方 Mermaid Preview |
+|------|---------|---------------------|
+| 启动速度 | 极快（无外部依赖） | 较慢（依赖 Mermaid.js 库） |
+| 功能设计 | 极简，专注预览 | 功能丰富但复杂 |
+| 跨文件导航 | 原生支持 MermaidChart 链接 | 不支持 |
+| 内存占用 | 低 | 高 |
+| 内联预览 | 支持 | 不支持 |
+| 自定义配置 | 面板位置等必要选项 | 大量可配置项 |
 
-#### 预览位置配置
+### 设计理念
 
-1. **Mermaid 文件预览位置** (`merfolk.preview.defaultColumn`)
-   - `beside` (默认): 在当前编辑器旁边的列中打开
-   - `right`: 在最右侧列中打开
-   - `left`: 在最左侧列中打开
-   - `active`: 在当前编辑器列中打开
-   - `one`: 在第一列中打开
-   - `two`: 在第二列中打开
-   - `three`: 在第三列中打开
+**轻量优先**：Merfolk 不包含不必要的功能，核心代码量小，启动速度快。预览功能直接使用 VS Code 的 Webview API，不引入额外的 Mermaid.js 依赖。
 
-2. **内联预览位置** (`merfolk.inlinePreview.defaultColumn`)
-   - `right` (默认): 在最右侧列中打开
-   - `beside`: 在当前编辑器旁边的列中打开
-   - `left`: 在最左侧列中打开
-   - `active`: 在当前编辑器列中打开
-   - `one`: 在第一列中打开
-   - `two`: 在第二列中打开
-   - `three`: 在第三列中打开
+**导航优先**：通过 MermaidChart 链接，可以将复杂的系统设计拆分为多个相关联的图表，在不同视图间快速切换，特别适合大型项目的架构文档。
 
-在 VSCode 设置中搜索 "merfolk" 即可找到这些配置选项。
+**体验优先**：一键预览、自动更新、简洁界面，让开发者可以专注于图表本身而非工具操作。
 
 ## 安装
 
-### 从 VSIX 安装
+### 方法一：VSIX 安装包
+1. 从 [GitHub Releases](https://github.com/straydragon/vscode-merfolk/releases) 下载最新的 `.vsix` 文件
+2. 在 VS Code 中按 `Ctrl+Shift+P`，输入 "Extensions: Install from VSIX..."
+3. 选择下载的 VSIX 文件完成安装
 
-1. 运行 `just package-vsix` 生成 VSIX 文件
-2. 在 VSCode 中：命令面板 > Extensions: Install from VSIX
-3. 选择生成的 VSIX 文件
+### 方法二：VS Code 扩展市场
+未来将在 VS Code 扩展市场发布，敬请期待。
 
-## 移除的功能
+## 快速开始
 
-相比官方 Mermaid 插件，本扩展移除了以下功能以保持轻量：
+1. 安装 Merfolk 扩展
+2. 创建一个新的 `.mmd` 文件
+3. 输入 Mermaid 图表代码
+4. 按 `Ctrl+Shift+V` 打开预览
+5. 开始绘制！
 
-- ❌ AI 功能和聊天集成
-- ❌ 云同步服务
-- ❌ 团队协作功能
-- ❌ 导出功能 (SVG/PNG)
-- ❌ Markdown 集成
-- ❌ 复杂的 UI 框架
-- ❌ 高级缩放/平移控制
-- ❌ 外部服务依赖
+## 示例
+
+查看 `examples` 目录获取更多示例：
+- `examples/basic/` - 基础图表示例（流程图、序列图、类图）
+- `examples/advanced/` - 高级图表示例（微服务架构、状态机）
+- `examples/workflow/` - 工作流示例（重点展示 MermaidChart 链接功能）
+- `examples/architecture/` - 架构设计示例（系统设计、数据库 ER 图）
+
+## 配置
+
+通过 VS Code 设置可以自定义：
+
+- `merfolk.preview.defaultColumn` - 预览面板的默认打开位置
+  - `beside`：当前编辑器旁边（默认）
+  - `right`：最右侧
+  - `left`：最左侧
+  - `active`：当前编辑器位置
+  - `one` / `two` / `three`：指定编辑器列
+
+- `merfolk.inlinePreview.defaultColumn` - 内联预览的默认打开位置
+
+## 快捷键
+
+- `Ctrl+Shift+V`（Mac：`Cmd+Shift+V`）- 打开预览（根据文件类型自动选择面板或内联）
 
 ## 开发
 
 ```bash
 # 安装依赖
-pnpm install
+just install
 
-# 编译
-pnpm run compile
+# 开发模式（监视文件变化）
+just
 
-# 打包 VSIX
-just package-vsix
+# 构建
+just build
 
-# 开发模式（按 F5）
-# 在 VSCode 中打开扩展开发主机进行测试
+# 代码检查
+just lint
 ```
 
 ## 许可证
 
-MIT
+MIT License
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 更新日志
+
+详见 [CHANGELOG.md](CHANGELOG.md)

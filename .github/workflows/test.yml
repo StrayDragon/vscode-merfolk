@@ -21,7 +21,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          package_json_file: pnpm-lock.yaml
+          version: 10
 
       - name: Setup just
         uses: extractions/setup-just@v2
