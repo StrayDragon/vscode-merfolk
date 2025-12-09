@@ -1,29 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-
-function getViewColumn(configValue: string): vscode.ViewColumn {
-    const activeEditor = vscode.window.activeTextEditor;
-    const activeColumn = activeEditor ? activeEditor.viewColumn : vscode.ViewColumn.One;
-
-    switch (configValue) {
-        case 'beside':
-            return activeColumn ? activeColumn + 1 : vscode.ViewColumn.Beside;
-        case 'right':
-            return vscode.ViewColumn.Three;
-        case 'left':
-            return vscode.ViewColumn.One;
-        case 'active':
-            return activeColumn || vscode.ViewColumn.One;
-        case 'one':
-            return vscode.ViewColumn.One;
-        case 'two':
-            return vscode.ViewColumn.Two;
-        case 'three':
-            return vscode.ViewColumn.Three;
-        default:
-            return vscode.ViewColumn.Beside;
-    }
-}
+import { getViewColumn } from '../../shared/utils/viewColumn';
 
 export class PreviewPanel {
     public static currentPanel: PreviewPanel | undefined;

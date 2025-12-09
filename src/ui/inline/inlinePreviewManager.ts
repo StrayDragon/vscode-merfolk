@@ -1,35 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-
-function getViewColumn(configValue: string): vscode.ViewColumn {
-    const activeEditor = vscode.window.activeTextEditor;
-    const activeColumn = activeEditor ? activeEditor.viewColumn : vscode.ViewColumn.One;
-
-    switch (configValue) {
-        case 'beside':
-            return activeColumn ? activeColumn + 1 : vscode.ViewColumn.Beside;
-        case 'right':
-            return vscode.ViewColumn.Three;
-        case 'left':
-            return vscode.ViewColumn.One;
-        case 'active':
-            return activeColumn || vscode.ViewColumn.One;
-        case 'one':
-            return vscode.ViewColumn.One;
-        case 'two':
-            return vscode.ViewColumn.Two;
-        case 'three':
-            return vscode.ViewColumn.Three;
-        default:
-            return vscode.ViewColumn.Two; // Default for inline preview is column two
-    }
-}
-
-export interface MermaidBlock {
-    range: vscode.Range;
-    content: string;
-    id: string;
-}
+import { getViewColumn } from '../../shared/utils/viewColumn';
+import { MermaidBlock } from '../../core/types';
 
 export class InlinePreviewManager {
     private static instance: InlinePreviewManager;
@@ -146,7 +118,8 @@ export class InlinePreviewManager {
             blocks.push({
                 range: new vscode.Range(startPos, endPos),
                 content: content.trim(),
-                id: `block-${blocks.length}`
+                id: `block-${blocks.length}`,
+                type: 'code' as const
             });
         }
 
@@ -163,7 +136,8 @@ export class InlinePreviewManager {
             blocks.push({
                 range: new vscode.Range(startPos, endPos),
                 content: `[Link to: ${filePath}]`,
-                id: `link-${blocks.length}`
+                id: `link-${blocks.length}`,
+                type: 'link' as const
             });
         }
 

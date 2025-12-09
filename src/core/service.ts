@@ -1,6 +1,152 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
+import { DIContainer } from './container';
 
+/**
+ * Base class for all services
+ * Provides common functionality and lifecycle management
+ */
+export abstract class BaseService {
+    protected disposables: vscode.Disposable[] = [];
+    protected readonly context: vscode.ExtensionContext;
+    protected readonly container: DIContainer;
+
+    constructor(container: DIContainer) {
+        this.container = container;
+        this.context = container.getContext() || {} as vscode.ExtensionContext;
+    }
+
+    /**
+     * Initialize the service (called after construction)
+     */
+    public async initialize(): Promise<void> {
+        // Override in subclasses if needed
+    }
+
+    /**
+     * Activate the service (called when extension is activated)
+     */
+    public async activate(context: vscode.ExtensionContext): Promise<void> {
+        // Override in subclasses if needed
+    }
+
+    /**
+     * Deactivate the service (called when extension is deactivated)
+     */
+    public async deactivate(): Promise<void> {
+        this.dispose();
+    }
+
+    /**
+     * Dispose of resources
+     */
+    public dispose(): void {
+        this.disposables.forEach(d => d.dispose());
+        this.disposables = [];
+    }
+
+    /**
+     * Add a disposable to the service lifecycle
+     */
+    protected addDisposable(disposable: vscode.Disposable): void {
+        this.disposables.push(disposable);
+    }
+
+    /**
+     * Register a VS Code command
+     */
+    protected registerCommand(
+        command: string,
+        callback: (...args: any[]) => any,
+        thisArg?: any
+    ): void {
+        const registeredCommand = vscode.commands.registerCommand(command, callback, thisArg);
+        this.addDisposable(registeredCommand);
+    }
+
+    /**
+     * Register a VS Code event listener
+     */
+    protected registerEvent<T>(
+        event: vscode.Event<T>,
+        listener: (e: T) => any,
+        thisArg?: any
+    ): void {
+        const disposable = event(listener, thisArg);
+        this.addDisposable(disposable);
+    }
+}
+
+/**
+ * Service interface for Preview functionality
+ */
+export interface IPreviewService {
+    createOrShow(document: vscode.TextDocument): void;
+    revive(panel: vscode.WebviewPanel): void;
+    dispose(): void;
+}
+
+/**
+ * Service interface for Inline Preview functionality
+ */
+export interface IInlinePreviewService {
+    activate(context: vscode.ExtensionContext): void;
+    deactivate(): void;
+    toggleInlinePreview(document: vscode.TextDocument): void;
+}
+
+/**
+ * Service interface for CodeLens functionality
+ */
+export interface ICodeLensService {
+    getProvider(): MermaidChartCodeLensProvider;
+    registerProvider(context: vscode.ExtensionContext): void;
+    refresh(): void;
+    dispose(): void;
+}
+
+/**
+ * Service interface for File operations
+ */
+export interface IFileService {
+    openFile(relativePath: string, baseUri: vscode.Uri): Promise<vscode.TextDocument>;
+    resolvePath(relativePath: string, baseUri: vscode.Uri): vscode.Uri;
+    isMermaidFile(document: vscode.TextDocument): boolean;
+}
+
+/**
+ * Service interface for Configuration management
+ */
+export interface IConfigService {
+    getPreviewColumn(): vscode.ViewColumn;
+    getInlinePreviewColumn(): vscode.ViewColumn;
+    get<T>(key: string, defaultValue: T): T;
+}
+
+/**
+ * Provider interface for Command registration
+ */
+export interface ICommandProvider {
+    registerCommands(context: vscode.ExtensionContext): void;
+}
+
+/**
+ * Provider interface for Extension activation
+ */
+export interface IActivationProvider {
+    onActivate(context: vscode.ExtensionContext): void;
+}
+
+/**
+ * Provider interface for Configuration management
+ */
+export interface IConfigProvider {
+    initialize(context: vscode.ExtensionContext): void;
+    getConfig(): vscode.WorkspaceConfiguration;
+}
+
+/**
+ * Enhanced MermaidChartCodeLensProvider that works with DI
+ */
 export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
@@ -68,14 +214,14 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
             const endPos = document.positionAt(endIndex);
             const range = new vscode.Range(startPos, endPos);
 
-            // Add CodeLens for preview action (without emoji)
+            // Add CodeLens for preview action
             codeLenses.push(new vscode.CodeLens(range, {
                 title: "Preview Mermaid",
                 command: "mermaidChart.preview",
                 arguments: [document.uri, filePath]
             }));
 
-            // Add CodeLens for open file action (without emoji)
+            // Add CodeLens for open file action
             codeLenses.push(new vscode.CodeLens(range, {
                 title: "Open File",
                 command: "mermaidChart.openFile",
