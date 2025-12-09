@@ -3,7 +3,6 @@ import { DIContainer } from './core/container';
 import { CommandProvider } from './providers/commandProvider';
 import { ActivationProvider } from './providers/activationProvider';
 import { PreviewService } from './services/previewService';
-import { InlinePreviewService } from './services/inlinePreviewService';
 import { CodeLensService } from './services/codeLensService';
 import { FileService } from './services/fileService';
 import { ConfigService } from './services/configService';
@@ -48,7 +47,6 @@ function registerServices(container: DIContainer): void {
 
     // Feature services
     container.registerSingleton('PreviewService', (c) => new PreviewService(c));
-    container.registerSingleton('InlinePreviewService', (c) => new InlinePreviewService(c));
     container.registerSingleton('CodeLensService', (c) => new CodeLensService(c));
 }
 

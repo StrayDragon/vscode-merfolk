@@ -20,15 +20,7 @@ export class ConfigService extends BaseService implements IConfigService {
         return getViewColumn(defaultColumnConfig);
     }
 
-    /**
-     * Get inline preview column configuration
-     */
-    public getInlinePreviewColumn(): vscode.ViewColumn {
-        const config = vscode.workspace.getConfiguration('merfolk.inlinePreview');
-        const defaultColumnConfig = config.get<string>('defaultColumn', 'right');
-        return getViewColumn(defaultColumnConfig, undefined);
-    }
-
+    
     /**
      * Get a configuration value
      */

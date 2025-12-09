@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { BaseService, ICommandProvider, IPreviewService, IInlinePreviewService, IFileService, ICodeLensService } from '../core/service';
+import { BaseService, ICommandProvider, IPreviewService, IFileService, ICodeLensService } from '../core/service';
 import { DIContainer } from '../core/container';
 
 /**
@@ -8,13 +8,11 @@ import { DIContainer } from '../core/container';
  */
 export class CommandProvider extends BaseService implements ICommandProvider {
     private previewService: IPreviewService;
-    private inlinePreviewService: IInlinePreviewService;
     private fileService: IFileService;
 
     constructor(container: DIContainer) {
         super(container);
         this.previewService = container.resolve<IPreviewService>('PreviewService');
-        this.inlinePreviewService = container.resolve<IInlinePreviewService>('InlinePreviewService');
         this.fileService = container.resolve<IFileService>('FileService');
     }
 
@@ -32,16 +30,7 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             }
         });
 
-        // Register the inline preview command for markdown files
-        this.registerCommand('mermaid.previewInline', () => {
-            const editor = vscode.window.activeTextEditor;
-            if (editor && editor.document.languageId === 'markdown') {
-                this.inlinePreviewService.toggleInlinePreview(editor.document);
-            } else {
-                vscode.window.showErrorMessage('No active Markdown file found');
-            }
-        });
-
+        
         // Register MermaidChart commands for CodeLens actions
         this.registerCommand('mermaidChart.preview', (documentUri: vscode.Uri, filePath: string) => {
             this.fileService.openFile(filePath, documentUri).then(document => {

@@ -18,10 +18,8 @@
   "icon": "icon.png",
   "activationEvents": [
     "onCommand:mermaid.preview",
-    "onCommand:mermaid.previewInline",
-    "onLanguage:mermaid",
-    "onLanguage:markdown",
-    "onLanguage:typescript",
+        "onLanguage:mermaid",
+        "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:python",
     "onLanguage:java",
@@ -58,29 +56,6 @@
             "Open preview in column two",
             "Open preview in column three"
           ]
-        },
-        "merfolk.inlinePreview.defaultColumn": {
-          "type": "string",
-          "enum": [
-            "beside",
-            "right",
-            "left",
-            "active",
-            "one",
-            "two",
-            "three"
-          ],
-          "default": "right",
-          "description": "Controls where Mermaid inline previews open by default",
-          "enumDescriptions": [
-            "Open preview in the column beside the current editor",
-            "Open preview in the rightmost column",
-            "Open preview in the leftmost column",
-            "Open preview in the current editor column",
-            "Open preview in column one",
-            "Open preview in column two",
-            "Open preview in column three"
-          ]
         }
       }
     },
@@ -90,12 +65,7 @@
         "title": "Mermaid: Open Preview",
         "icon": "$(preview)"
       },
-      {
-        "command": "mermaid.previewInline",
-        "title": "Mermaid: Toggle Inline Preview",
-        "icon": "$(open-preview)"
-      },
-      {
+            {
         "command": "mermaidChart.preview",
         "title": "Preview MermaidChart Diagram"
       },
@@ -135,21 +105,12 @@
           "command": "mermaid.preview",
           "when": "resourceLangId == mermaid",
           "group": "navigation"
-        },
-        {
-          "command": "mermaid.previewInline",
-          "when": "resourceLangId == markdown",
-          "group": "navigation"
         }
       ],
       "commandPalette": [
         {
           "command": "mermaid.preview",
           "when": "resourceLangId == mermaid"
-        },
-        {
-          "command": "mermaid.previewInline",
-          "when": "resourceLangId == markdown"
         }
       ]
     },

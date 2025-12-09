@@ -85,14 +85,6 @@ export interface IPreviewService {
     dispose(): void;
 }
 
-/**
- * Service interface for Inline Preview functionality
- */
-export interface IInlinePreviewService {
-    activate(context: vscode.ExtensionContext): void;
-    deactivate(): void;
-    toggleInlinePreview(document: vscode.TextDocument): void;
-}
 
 /**
  * Service interface for CodeLens functionality
@@ -118,7 +110,6 @@ export interface IFileService {
  */
 export interface IConfigService {
     getPreviewColumn(): vscode.ViewColumn;
-    getInlinePreviewColumn(): vscode.ViewColumn;
     get<T>(key: string, defaultValue: T): T;
 }
 
