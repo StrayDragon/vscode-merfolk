@@ -46,27 +46,36 @@ This is a **VS Code extension** that provides Mermaid diagram preview functional
 
 ### Core Components
 
-1. **extension.ts** (`src/extension.ts:8`) - Main entry point
-   - Registers all commands and providers
-   - Handles activation/deactivation
-   - Manages CodeLens provider lifecycle with debounced refresh
+1. **extension.ts** (`src/extension.ts:21`) - Main entry point
+   - Creates and configures IoC container
+   - Registers all services and providers
+   - Handles activation/deactivation lifecycle
+   - Disposes all services on deactivation
 
-2. **PreviewPanel** (`src/previewPanel.ts:28`) - Dedicated preview panel
-   - Creates and manages webview panel for `.mmd` and `.mermaid` files
-   - Supports configurable panel positioning (beside, left, right, etc.)
-   - Handles MermaidChart file navigation links
-   - Auto-updates when active editor changes to a Mermaid file
+2. **DIContainer** (`src/core/container.ts:7`) - IoC container
+   - Manages dependency injection
+   - Registers singleton services
+   - Handles service resolution and lifecycle
 
-3. **InlinePreviewManager** (`src/inlinePreviewManager.ts`) - Inline preview for Markdown
-   - Manages inline previews within Markdown files
-   - Singleton pattern for state management
-   - Allows toggling preview on/off
+3. **Services Layer** - Feature implementations
+   - **PreviewService** (`src/services/previewService.ts:10`) - Manages preview panels
+   - **CodeLensService** (`src/services/codeLensService.ts:9`) - Handles CodeLens provider registration
+   - **FileService** (`src/services/fileService.ts:9`) - File path resolution and operations
+   - **ConfigService** (`src/services/configService.ts:9`) - Configuration management
 
-4. **MermaidChartCodeLensProvider** (`src/mermaidChartCodeLensProvider.ts:1`) - CodeLens integration
-   - Detects `MermaidChart:` links in any file type
-   - Provides "Preview" and "Open File" actions via CodeLens
-   - Supports HTML link format: `<a href="MermaidChart:path/to/file.mmd">Link Text</a>`
-   - Includes debounced refresh for performance
+4. **Providers Layer** - VS Code integration
+   - **ActivationProvider** (`src/providers/activationProvider.ts:8`) - Handles extension activation
+   - **CommandProvider** (`src/providers/commandProvider.ts:9`) - Registers all commands
+
+5. **UI Components** - User interface
+   - **PreviewPanel** (`src/ui/preview/previewPanel.ts:5`) - Dedicated preview panel with webview
+   - Supports zoom, pan, and export functionality
+   - Auto-updates on document changes with debouncing
+
+6. **MermaidChartCodeLensProvider** (`src/core/service.ts:141`) - CodeLens integration
+   - Detects `[MermaidChart: path]` patterns in any file
+   - Provides "Preview" and "Open" actions via CodeLens
+   - Includes performance optimizations (caching, debouncing)
 
 ### Build System
 
@@ -85,14 +94,12 @@ This is a **VS Code extension** that provides Mermaid diagram preview functional
 
 ### Commands
 - `mermaid.preview` - Open dedicated preview panel (Ctrl+Shift+V in Mermaid files)
-- `mermaid.previewInline` - Toggle inline preview in Markdown files
 - `mermaidChart.preview` - Preview via CodeLens link
 - `mermaidChart.openFile` - Open file via CodeLens link
 - `mermaidChart.refreshCodeLens` - Manually refresh CodeLens
 
 ### Configuration Options
 - `merfolk.preview.defaultColumn` - Where to open preview panel (beside/right/left/active/one/two/three)
-- `merfolk.inlinePreview.defaultColumn` - Where to open inline previews
 
 ### MermaidChart Links
 The extension supports special `MermaidChart:` links for cross-file navigation:
@@ -128,17 +135,27 @@ pnpm run test
 ```
 vscode-merfolk/
 ├── src/                    # Source code
-│   ├── extension.ts        # Main entry point
-│   ├── previewPanel.ts     # Dedicated preview panel
-│   ├── inlinePreviewManager.ts  # Inline preview management
-│   ├── mermaidChartCodeLensProvider.ts  # CodeLens provider
+│   ├── extension.ts        # Main entry point with IoC setup
+│   ├── core/               # Core infrastructure
+│   │   ├── container.ts    # IoC container
+│   │   ├── service.ts      # Base service and interfaces
+│   │   └── types.ts        # Type definitions
+│   ├── services/           # Business logic services
+│   │   ├── previewService.ts
+│   │   ├── codeLensService.ts
+│   │   ├── fileService.ts
+│   │   └── configService.ts
+│   ├── providers/          # VS Code integration providers
+│   │   ├── commandProvider.ts
+│   │   └── activationProvider.ts
+│   ├── ui/                 # UI components
+│   │   └── preview/        # Preview panel implementation
+│   │       └── previewPanel.ts
+│   ├── shared/             # Shared utilities
+│   │   └── utils/          # Utility functions
+│   │       └── viewColumn.ts
 │   └── test/              # Test files (not implemented)
-├── examples/              # Mermaid diagram examples
-│   ├── basic/             # Basic diagrams
-│   ├── advanced/          # Advanced diagrams
-│   ├── workflow/          # Workflow diagrams with MermaidChart links
-│   └── architecture/      # System architecture diagrams
-├── assets/                # Static assets for webviews
+├── assets/                # Static assets for webviews (Mermaid.js)
 ├── syntaxes/              # Mermaid syntax highlighting
 ├── dist/                  # Built extension (generated)
 ├── justfile               # Task runner commands
@@ -150,24 +167,33 @@ vscode-merfolk/
 ## Common Development Tasks
 
 ### Adding a New Command
-1. Register command in `extension.ts:12-151`
-2. Implement command handler
-3. Add to context subscriptions
+1. Add command to `package.json` contributes.commands section
+2. Implement handler in `CommandProvider.registerCommands()`
+3. Use `container.resolve()` to access services
 
 ### Modifying Preview Behavior
-- Panel positioning logic: `previewPanel.ts:4-26`
-- Webview content updates: `previewPanel.ts:82+`
-- Message handling: `previewPanel.ts:96+`
+- Panel creation: `PreviewPanel.createOrShow()` in `previewPanel.ts:13`
+- Webview HTML generation: `PreviewPanel._getHtmlForWebview()` in `previewPanel.ts:185`
+- Message handling: `PreviewPanel` message handler in `previewPanel.ts:73-92`
 
 ### Working with MermaidChart Links
-- Detection logic: `mermaidChartCodeLensProvider.ts`
-- Link format: `MermaidChart:path/to/file.mmd`
-- CodeLens refresh: `extension.ts:76-126`
+- Detection logic: `MermaidChartCodeLensProvider.provideCodeLenses()` in `core/service.ts:153`
+- Regex pattern: `/\[MermaidChart:\s*([^\]]+\.(mmd|mermaid|md))\s*\]/gi` in `core/service.ts:151`
+- Link format: `[MermaidChart: path/to/file.mmd]`
+- CodeLens refresh: `CodeLensService.refresh()` in `codeLensService.ts:104`
+
+### Adding a New Service
+1. Create interface in `core/service.ts` or `core/types.ts`
+2. Implement service class extending `BaseService`
+3. Register in `extension.ts:43-51`
+4. Resolve via `container.resolve<T>()`
 
 ## Notes
 
-- Uses **pnpm** as package manager (not npm/yarn)
-- **esbuild** for bundling (not webpack/rollup)
-- Extension runs on VS Code Engine ^1.106.1
+- Uses **pnpm** as package manager
+- **esbuild** for bundling TypeScript to CommonJS
+- Extension runs on VS Code Engine ^1.105.1
+- All services use dependency injection via IoC container
 - Tests are currently not implemented
-- Examples directory contains extensive Mermaid diagram samples with MermaidChart link demonstrations
+- CodeLens provider includes performance optimizations (caching, debouncing)
+- WebView uses local Mermaid.js from `assets/mermaid.min.js`

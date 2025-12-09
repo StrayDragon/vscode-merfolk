@@ -14,126 +14,46 @@
   </p>
 </div>
 
-Merfolk 是一个轻量级的 VS Code 扩展，专注于为 Mermaid 图表提供简洁、快速的预览功能。与其他 Mermaid 扩展不同，Merfolk 追求极简设计，无需外部依赖，启动速度快，为开发者提供纯净的图表示体验。
+## 功能介绍
 
-## 主要功能
+Merfolk 是一个轻量级的 Mermaid 功能增强的 VS Code 插件，让你在编辑器中直接预览和导航 Mermaid 图表。
 
-### 专用预览面板
-- 打开 `.mmd` 或 `.mermaid` 文件后，使用 `Ctrl+Shift+V`（Mac 上为 `Cmd+Shift+V`）快速打开专用预览面板
-- 预览面板支持多种位置配置（当前编辑器旁边、最左侧、最右侧等）
-- 当切换到其他 Mermaid 文件时，预览面板会自动更新
+### 实时预览图表
 
-### 内联预览（Markdown 文件）
-- 在 Markdown 文件中使用 `Ctrl+Shift+V` 快速切换 Mermaid 图表的内联预览
-- 适合在编写技术文档时即时查看图表效果
+插件会在 VS Code 中创建一个专门的预览面板，显示当前打开的 `.mmd` 或 `.mermaid` 文件的图表。预览面板支持：
 
-### MermaidChart 链接导航
-Merfolk 的核心特性：支持在图表中创建指向其他 Mermaid 文件的链接，实现跨文件的图表导航。
+- 缩放功能：可以放大或缩小图表，方便查看大型图表的细节
+- 平移功能：按住鼠标左键拖动，可以在预览中移动图表位置
+- 自适应屏幕：自动调整图表大小以适应预览面板
+- 实时更新：当你在编辑器中修改图表代码时，预览会自动刷新
 
-```mermaid
-flowchart TD
-    A[开始项目] --> B[查看架构图]
-    B --> C[<a href="MermaidChart:architecture/system-design.mmd">系统架构</a>]
-    C --> D[<a href="MermaidChart:workflows/ci-cd.mmd">CI/CD 流程</a>]
+预览面板默认在当前编辑器的旁边打开，你也可以在设置中配置它在其他位置显示。
+
+### 跨文件图表导航
+
+在任何类型的文件中，你都可以插入特殊格式的链接来引用 Mermaid 图表：
+
+```
+[MermaidChart: path/to/diagram.mmd]
 ```
 
-- 支持 HTML 链接格式：`<a href="MermaidChart:path/to/file.mmd">链接文本</a>`
-- 在任何支持的文件类型中，Merfolk 都会检测 MermaidChart 链接并显示 CodeLens 操作
-- 点击 "Preview" 直接在新面板中打开目标图表
-- 点击 "Open File" 打开对应的源文件
+插件会自动识别这种格式，并在链接旁边显示两个操作按钮：
+
+- **Preview 按钮**：点击后在预览面板中查看图表
+- **Open 按钮**：点击后打开图表文件
+
+这种方式让你可以在文档、代码或其他文件中轻松引用和查看相关的流程图、架构图等。链接路径支持相对路径和绝对路径，插件会自动解析文件位置。
+
+### 图表导出
+
+预览面板提供了导出功能，可以将当前显示的图表保存为 SVG 格式的文件。导出的 SVG 文件可以在其他应用程序中使用或进一步编辑。
 
 ### 语法高亮
-- 内置 Mermaid 语法高亮支持
-- 支持 `.mmd` 和 `.mermaid` 文件扩展名
 
-## 为什么选择 Merfolk？
+插件为 `.mmd` 和 `.mermaid` 文件提供完整的语法高亮，让图表代码更易读易懂。
 
-### 与官方 Mermaid Preview 扩展的区别
+## 工作原理
 
-| 特性 | Merfolk | 官方 Mermaid Preview |
-|------|---------|---------------------|
-| 启动速度 | 极快（无外部依赖） | 较慢（依赖 Mermaid.js 库） |
-| 功能设计 | 极简，专注预览 | 功能丰富但复杂 |
-| 跨文件导航 | 原生支持 MermaidChart 链接 | 不支持 |
-| 内存占用 | 低 | 高 |
-| 内联预览 | 支持 | 不支持 |
-| 自定义配置 | 面板位置等必要选项 | 大量可配置项 |
+当你打开一个 Mermaid 文件时，插件会在预览面板中加载 Mermaid.js 渲染引擎，将你的图表代码转换为可交互的可视化图表。对于包含 `[MermaidChart:]` 链接的文件，插件会扫描整个文档并添加相应的操作按钮。
 
-### 设计理念
-
-**轻量优先**：Merfolk 不包含不必要的功能，核心代码量小，启动速度快。预览功能直接使用 VS Code 的 Webview API，不引入额外的 Mermaid.js 依赖。
-
-**导航优先**：通过 MermaidChart 链接，可以将复杂的系统设计拆分为多个相关联的图表，在不同视图间快速切换，特别适合大型项目的架构文档。
-
-**体验优先**：一键预览、自动更新、简洁界面，让开发者可以专注于图表本身而非工具操作。
-
-## 安装
-
-### 方法一：VSIX 安装包
-1. 从 [GitHub Releases](https://github.com/straydragon/vscode-merfolk/releases) 下载最新的 `.vsix` 文件
-2. 在 VS Code 中按 `Ctrl+Shift+P`，输入 "Extensions: Install from VSIX..."
-3. 选择下载的 VSIX 文件完成安装
-
-### 方法二：VS Code 扩展市场
-未来将在 VS Code 扩展市场发布，敬请期待。
-
-## 快速开始
-
-1. 安装 Merfolk 扩展
-2. 创建一个新的 `.mmd` 文件
-3. 输入 Mermaid 图表代码
-4. 按 `Ctrl+Shift+V` 打开预览
-5. 开始绘制！
-
-## 示例
-
-查看 `examples` 目录获取更多示例：
-- `examples/basic/` - 基础图表示例（流程图、序列图、类图）
-- `examples/advanced/` - 高级图表示例（微服务架构、状态机）
-- `examples/workflow/` - 工作流示例（重点展示 MermaidChart 链接功能）
-- `examples/architecture/` - 架构设计示例（系统设计、数据库 ER 图）
-
-## 配置
-
-通过 VS Code 设置可以自定义：
-
-- `merfolk.preview.defaultColumn` - 预览面板的默认打开位置
-  - `beside`：当前编辑器旁边（默认）
-  - `right`：最右侧
-  - `left`：最左侧
-  - `active`：当前编辑器位置
-  - `one` / `two` / `three`：指定编辑器列
-
-- `merfolk.inlinePreview.defaultColumn` - 内联预览的默认打开位置
-
-## 快捷键
-
-- `Ctrl+Shift+V`（Mac：`Cmd+Shift+V`）- 打开预览（根据文件类型自动选择面板或内联）
-
-## 开发
-
-```bash
-# 安装依赖
-just install
-
-# 开发模式（监视文件变化）
-just
-
-# 构建
-just build
-
-# 代码检查
-just lint
-```
-
-## 许可证
-
-MIT License
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 更新日志
-
-详见 [CHANGELOG.md](CHANGELOG.md)
+预览面板使用 WebView 技术实现，与 VS Code 主界面集成，提供流畅的用户体验。所有图表渲染都在本地进行，不依赖外部服务。
