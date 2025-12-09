@@ -207,14 +207,14 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
 
             // Add CodeLens for preview action
             codeLenses.push(new vscode.CodeLens(range, {
-                title: "Preview Mermaid",
+                title: "Preview",
                 command: "mermaidChart.preview",
                 arguments: [document.uri, filePath]
             }));
 
             // Add CodeLens for open file action
             codeLenses.push(new vscode.CodeLens(range, {
-                title: "Open File",
+                title: "Open",
                 command: "mermaidChart.openFile",
                 arguments: [document.uri, filePath]
             }));

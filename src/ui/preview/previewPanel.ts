@@ -76,9 +76,14 @@ export class PreviewPanel {
                     case 'openMermaidChart':
                         await this._openMermaidChartFile(message.path);
                         return;
-                    case 'exportPng':
-                    case 'exportSvg':
-                        vscode.window.showInformationMessage('Export functionality coming soon!');
+                                        case 'exportSvg':
+                        await this._exportSvg();
+                        return;
+                    case 'saveContent':
+                        await this._saveFile(message.content, message.fileName);
+                        return;
+                    case 'showError':
+                        vscode.window.showErrorMessage(message.text);
                         return;
                 }
             },
@@ -187,7 +192,7 @@ export class PreviewPanel {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource};">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src blob: data:; connect-src blob:;">
     <title>Mermaid Preview</title>
     <style>
         body {
@@ -275,7 +280,6 @@ export class PreviewPanel {
         <button onclick="resetZoom()">Reset</button>
         <button onclick="fitToScreen()">Fit to Screen</button>
         <button onclick="exportSvg()">Export SVG</button>
-        <button onclick="exportPng()">Export PNG</button>
     </div>
     <div id="container">
         <div id="mermaid-diagram"></div>
@@ -488,18 +492,43 @@ export class PreviewPanel {
         function applyTransform() {
             const svg = document.querySelector('#mermaid-diagram svg');
             if (svg) {
-                svg.style.transform = \`translate(\${currentPanX}px, \${currentPanY}px) scale(\${currentZoom})\`;
-                svg.style.width = \`auto\`;
-                svg.style.height = \`auto\`;
+                svg.style.transform = 'translate(' + currentPanX + 'px, ' + currentPanY + 'px) scale(' + currentZoom + ')';
+                svg.style.width = 'auto';
+                svg.style.height = 'auto';
             }
         }
 
         function exportSvg() {
-            vscode.postMessage({ command: 'exportSvg' });
+            const svg = document.querySelector('#mermaid-diagram svg');
+            if (!svg) {
+                vscode.postMessage({ command: 'showError', text: 'No diagram to export' });
+                return;
+            }
+
+            // Clone SVG to avoid modifying the original
+            const svgClone = svg.cloneNode(true);
+
+            // Get the SVG content with proper XML header
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+            const svgContent = '<?xml version="1.0" encoding="UTF-8"?>\\n' +
+                '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\\n' +
+                svgData;
+
+            vscode.postMessage({
+                command: 'saveContent',
+                content: svgContent,
+                fileName: getFileName('svg')
+            });
         }
 
-        function exportPng() {
-            vscode.postMessage({ command: 'exportPng' });
+        
+        function getFileName(extension) {
+            const fileName = currentContent.match(/title:\\s*([^\\n]+)/i) ||
+                            currentContent.match(/graph\\s+(\\w+)/i) ||
+                            currentContent.match(/(\\w+)Diagram/i) ||
+                            ['diagram'];
+            const baseName = fileName[1] || 'diagram';
+            return baseName + '.' + extension;
         }
 
         // Listen for messages from the extension
@@ -510,6 +539,11 @@ export class PreviewPanel {
                     currentContent = message.content;
                     await renderMermaid(currentContent);
                     break;
+                case 'requestExport':
+                    if (message.format === 'svg') {
+                        exportSvg();
+                    }
+                    break;
             }
         });
 
@@ -518,6 +552,55 @@ export class PreviewPanel {
     </script>
 </body>
 </html>`;
+    }
+
+    private async _exportSvg(): Promise<void> {
+        try {
+            // Ask webview for the SVG content
+            const result = await this._panel.webview.postMessage({
+                command: 'requestExport',
+                format: 'svg'
+            });
+
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to export: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    private async _saveFile(content: string, fileName: string): Promise<void> {
+        try {
+            // Show save dialog
+            const saveUri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(fileName),
+                filters: {
+                    'SVG Files': ['svg'],
+                    'All Files': ['*']
+                }
+            });
+
+            if (saveUri) {
+                // Write the file
+                const encodedContent = Buffer.from(content, 'utf8');
+                await vscode.workspace.fs.writeFile(saveUri, encodedContent);
+
+                // Show success message
+                vscode.window.showInformationMessage(`Diagram exported to ${saveUri.fsPath}`);
+
+                // Optionally open the exported file
+                const openAction = 'Open File';
+                const action = await vscode.window.showInformationMessage(
+                    `Diagram exported successfully!`,
+                    openAction
+                );
+
+                if (action === openAction) {
+                    // Try to open with default app
+                    vscode.env.openExternal(saveUri);
+                }
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to save file: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 
     public static readonly viewType = 'mermaid.preview';
