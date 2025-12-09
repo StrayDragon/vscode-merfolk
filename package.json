@@ -2,7 +2,7 @@
   "name": "vscode-merfolk",
   "displayName": "Merfolk",
   "description": "Minimal Mermaid diagram preview extension",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.105.1"
   },
@@ -18,8 +18,8 @@
   "icon": "icon.png",
   "activationEvents": [
     "onCommand:mermaid.preview",
-        "onLanguage:mermaid",
-        "onLanguage:typescript",
+    "onLanguage:mermaid",
+    "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:python",
     "onLanguage:java",
@@ -65,7 +65,7 @@
         "title": "Mermaid: Open Preview",
         "icon": "$(preview)"
       },
-            {
+      {
         "command": "mermaidChart.preview",
         "title": "Preview MermaidChart Diagram"
       },
