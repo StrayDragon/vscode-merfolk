@@ -56,34 +56,6 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
-          body: |-
-            ## Merfolk Extension ${{ steps.version.outputs.version }}
-
-            A minimal Mermaid diagram preview extension for VS Code.
-
-            ## Installation
-
-            1. Download the VSIX file from the Assets section below
-            2. Open VS Code
-            3. Go to Extensions → Install from VSIX...
-            4. Select the downloaded `vscode-merfolk-${{ steps.version.outputs.version }}.vsix` file
-
-            Or install from the marketplace: [straydragon.merfolk](https://marketplace.visualstudio.com/items?itemName=straydragon.merfolk)
-
-            ## Features
-
-            - Preview Mermaid diagrams in a dedicated panel
-            - Toggle inline preview for Mermaid diagrams in Markdown files
-            - Syntax highlighting for Mermaid files
-            - Support for `.mmd` and `.mermaid` file extensions
-            - Keyboard shortcuts for quick preview access
-
-            ## Changes
-
-            See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
-
-            ---
-            🤖 Generated with [Claude Code](https://claude.com/claude-code)
           files: |
             vscode-merfolk-${{ steps.version.outputs.version }}.vsix
           draft: false
