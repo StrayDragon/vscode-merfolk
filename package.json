@@ -19,6 +19,7 @@
   "activationEvents": [
     "onCommand:mermaid.preview",
     "onLanguage:mermaid",
+    "onLanguage:markdown",
     "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:python",
@@ -56,6 +57,33 @@
             "Open preview in column two",
             "Open preview in column three"
           ]
+        },
+        "merfolk.markdown.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable markdown file support for MermaidChart links"
+        },
+        "merfolk.markdown.cacheSize": {
+          "type": "number",
+          "default": 100,
+          "minimum": 10,
+          "maximum": 500,
+          "description": "Maximum number of markdown documents to cache for performance"
+        },
+        "merfolk.markdown.parseOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically parse markdown files when they are saved"
+        },
+        "merfolk.markdown.headingLevels": {
+          "type": "array",
+          "default": [1, 2, 3, 4, 5, 6],
+          "items": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 6
+          },
+          "description": "Which markdown heading levels to recognize as sections"
         }
       }
     },
@@ -72,6 +100,14 @@
       {
         "command": "mermaidChart.openFile",
         "title": "Open MermaidChart File"
+      },
+      {
+        "command": "mermaidChart.previewMarkdown",
+        "title": "Preview Markdown Section"
+      },
+      {
+        "command": "mermaidChart.openFileAtSection",
+        "title": "Open File at Section"
       },
       {
         "command": "mermaidChart.refreshCodeLens",
@@ -130,19 +166,12 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "lint": "eslint src"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/vscode": "^1.105.1",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.1",
     "eslint": "^9.39.1",

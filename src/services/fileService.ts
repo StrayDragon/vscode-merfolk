@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { BaseService, IFileService } from '../core/service';
 import { DIContainer } from '../core/container';
+import { isMermaidFile, isMarkdownFile, generateContentHash } from '../shared/utils/fileType';
 
 /**
  * Service for handling file operations
@@ -16,29 +17,23 @@ export class FileService extends BaseService implements IFileService {
      * Priority: absolute path > relative to current file's directory > relative to workspace root
      */
     public resolvePath(relativePath: string, baseUri: vscode.Uri): vscode.Uri {
-        console.log(`[FileService] Resolving path: ${relativePath} from base: ${baseUri.fsPath}`);
-
         // If it's already an absolute path, return it directly
         if (path.isAbsolute(relativePath)) {
-            console.log(`[FileService] Absolute path detected: ${relativePath}`);
             return vscode.Uri.file(relativePath);
         }
 
         // Get the directory of the current file
         const currentFileDir = path.dirname(baseUri.fsPath);
-        console.log(`[FileService] Current file directory: ${currentFileDir}`);
 
         // First, try to resolve relative to the current file's directory
         const relativeToFile = path.resolve(currentFileDir, relativePath);
-        console.log(`[FileService] Resolved relative to file: ${relativeToFile}`);
 
         // Check if the file exists relative to the current file
         try {
             vscode.workspace.fs.stat(vscode.Uri.file(relativeToFile));
-            console.log(`[FileService] Found file relative to current file: ${relativeToFile}`);
             return vscode.Uri.file(relativeToFile);
         } catch (e) {
-            console.log(`[FileService] File not found relative to current file, trying workspace root`);
+            // File not found, try workspace root
         }
 
         // If not found, try to resolve relative to workspace root
@@ -46,20 +41,17 @@ export class FileService extends BaseService implements IFileService {
         if (workspaceFolders && workspaceFolders.length > 0) {
             const workspaceRoot = workspaceFolders[0].uri.fsPath;
             const relativeToWorkspace = path.resolve(workspaceRoot, relativePath);
-            console.log(`[FileService] Resolved relative to workspace: ${relativeToWorkspace}`);
 
             // Check if the file exists relative to workspace root
             try {
                 vscode.workspace.fs.stat(vscode.Uri.file(relativeToWorkspace));
-                console.log(`[FileService] Found file relative to workspace: ${relativeToWorkspace}`);
                 return vscode.Uri.file(relativeToWorkspace);
             } catch (e) {
-                console.log(`[FileService] File not found in workspace either`);
+                // File not found, return relative path
             }
         }
 
-        // Return the path relative to current file (even if it might not exist)
-        console.log(`[FileService] Returning path relative to current file (may not exist): ${relativeToFile}`);
+        // Return the path relative to current file (may not exist)
         return vscode.Uri.file(relativeToFile);
     }
 
@@ -85,7 +77,101 @@ export class FileService extends BaseService implements IFileService {
      * Check if a document is a Mermaid file
      */
     public isMermaidFile(document: vscode.TextDocument): boolean {
-        const fileName = document.fileName.toLowerCase();
-        return fileName.endsWith('.mmd') || fileName.endsWith('.mermaid');
+        return isMermaidFile(document);
+    }
+
+    /**
+     * Check if a document is a Markdown file
+     */
+    public isMarkdownFile(document: vscode.TextDocument): boolean {
+        return isMarkdownFile(document);
+    }
+
+    /**
+     * Generate content hash for cache validation
+     */
+    public getDocumentHash(document: vscode.TextDocument): string {
+        return generateContentHash(document.getText());
+    }
+
+    /**
+     * Open a markdown file and navigate to specific section
+     */
+    public async openMarkdownFile(
+        relativePath: string,
+        baseUri: vscode.Uri,
+        section?: string
+    ): Promise<vscode.TextDocument> {
+        const targetUri = this.resolvePath(relativePath, baseUri);
+
+        // Check if the file exists
+        try {
+            await vscode.workspace.fs.stat(targetUri);
+        } catch (error) {
+            throw new Error(`File not found: ${relativePath}`);
+        }
+
+        // Open the file
+        const document = await vscode.workspace.openTextDocument(targetUri);
+
+        // If section is specified, navigate to it
+        if (section) {
+            await this.navigateToSection(document, section);
+        }
+
+        return document;
+    }
+
+    /**
+     * Navigate to a specific section in a markdown document
+     */
+    private async navigateToSection(document: vscode.TextDocument, sectionTitle: string): Promise<void> {
+        const lines = document.getText().split('\n');
+        const targetPattern = new RegExp(`^#{1,6}\\s+${this.escapeRegExp(sectionTitle)}\\s*$`, 'i');
+
+        for (let i = 0; i < lines.length; i++) {
+            if (targetPattern.test(lines[i])) {
+                const position = new vscode.Position(i, 0);
+                const range = new vscode.Range(position, position);
+
+                // Show the document and reveal the line
+                const editor = await vscode.window.showTextDocument(document);
+                editor.selection = new vscode.Selection(position, position);
+                editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+
+                return;
+            }
+        }
+
+        // Section not found - show error with available sections
+        const availableSections = this.extractSectionTitles(lines);
+        const sectionList = availableSections.map(s => `"${s}"`).join(', ');
+        throw new Error(
+            `Section "${sectionTitle}" not found in document. Available sections: ${sectionList}`
+        );
+    }
+
+    /**
+     * Extract section titles from markdown lines
+     */
+    private extractSectionTitles(lines: string[]): string[] {
+        const sections: string[] = [];
+        const headingPattern = /^#{1,6}\s+(.+)$/;
+
+        for (const line of lines) {
+            const match = line.match(headingPattern);
+            if (match) {
+                sections.push(match[1].trim());
+            }
+        }
+
+        return sections;
+    }
+
+    /**
+     * Escape special characters for regex
+     */
+    private escapeRegExp(string: string): string {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 }

@@ -49,15 +49,39 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             }
         });
 
-        // Debug command to refresh CodeLens
+        // Register new commands for markdown section support
+        this.registerCommand('mermaidChart.previewMarkdown', async (documentUri: vscode.Uri, linkInfo: { filePath: string; section?: string; index?: number }) => {
+            try {
+                await this.previewService.previewMarkdownSection(
+                    documentUri,
+                    linkInfo.filePath,
+                    linkInfo.section,
+                    linkInfo.index
+                );
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to preview markdown section: ${errorMessage}`);
+            }
+        });
+
+        this.registerCommand('mermaidChart.openFileAtSection', async (documentUri: vscode.Uri, linkInfo: { filePath: string; section?: string; index?: number }) => {
+            try {
+                const document = await this.fileService.openMarkdownFile(
+                    linkInfo.filePath,
+                    documentUri,
+                    linkInfo.section
+                );
+                await vscode.window.showTextDocument(document);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to open file at section: ${errorMessage}`);
+            }
+        });
+
+              // Debug command to refresh CodeLens
         this.registerCommand('mermaidChart.refreshCodeLens', () => {
-            console.log('[MermaidChart] Manual CodeLens refresh triggered');
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor) {
-                const text = activeEditor.document.getText();
-                console.log(`[MermaidChart] Checking active document: ${activeEditor.document.fileName}`);
-                console.log(`[MermaidChart] Document contains MermaidChart: ${/\[MermaidChart:/i.test(text)}`);
-
                 // Get the CodeLens service and refresh
                 const codeLensService = this.container.resolve<ICodeLensService>('CodeLensService');
                 if (codeLensService) {

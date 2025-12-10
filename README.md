@@ -33,14 +33,25 @@ Merfolk 是一个轻量级的 Mermaid 功能增强的 VS Code 插件，让你在
 
 在任何类型的文件中，你都可以插入特殊格式的链接来引用 Mermaid 图表：
 
+#### 基础语法
 ```
 [MermaidChart: path/to/diagram.mmd]
+```
+
+#### Markdown 章节支持（新功能）
+插件现在支持从 Markdown 文件中的特定章节提取 Mermaid 图表：
+
+```
+[MermaidChart: doc.md]                    # 整个文档的第一个 mermaid 块
+[MermaidChart: doc.md#section-name]       # 特定章节的第一个 mermaid 块
+[MermaidChart: doc.md#section-name:2]     # 特定章节的第 N 个 mermaid 块
+[MermaidChart: doc.md:3]                  # 整个文档的第 N 个 mermaid 块
 ```
 
 插件会自动识别这种格式，并在链接旁边显示两个操作按钮：
 
 - **Preview 按钮**：点击后在预览面板中查看图表
-- **Open 按钮**：点击后打开图表文件
+- **Open 按钮**：点击后打开图表文件（对于 Markdown 文件会导航到对应章节）
 
 这种方式让你可以在文档、代码或其他文件中轻松引用和查看相关的流程图、架构图等。链接路径支持相对路径和绝对路径，插件会自动解析文件位置。
 
@@ -51,6 +62,23 @@ Merfolk 是一个轻量级的 Mermaid 功能增强的 VS Code 插件，让你在
 ### 语法高亮
 
 插件为 `.mmd` 和 `.mermaid` 文件提供完整的语法高亮，让图表代码更易读易懂。
+
+## 配置选项
+
+插件提供以下配置选项，可以通过 VS Code 设置进行自定义：
+
+- **merfolk.preview.defaultColumn**: 控制预览面板默认打开的位置
+  - `beside`: 在当前编辑器旁边（默认）
+  - `right`: 在最右侧列
+  - `left`: 在最左侧列
+  - `active`: 在当前编辑器列
+  - `one/two/three`: 在指定列
+
+- **merfolk.markdown.enabled**: 是否启用 Markdown 文件支持（默认: true）
+
+- **merfolk.markdown.cacheSize**: Markdown 文档缓存大小（默认: 100）
+
+- **merfolk.markdown.cacheTTL**: 缓存生存时间，毫秒（默认: 30000）
 
 ## 工作原理
 

@@ -15,27 +15,7 @@ export abstract class BaseService {
         this.context = container.getContext() || {} as vscode.ExtensionContext;
     }
 
-    /**
-     * Initialize the service (called after construction)
-     */
-    public async initialize(): Promise<void> {
-        // Override in subclasses if needed
-    }
-
-    /**
-     * Activate the service (called when extension is activated)
-     */
-    public async activate(context: vscode.ExtensionContext): Promise<void> {
-        // Override in subclasses if needed
-    }
-
-    /**
-     * Deactivate the service (called when extension is deactivated)
-     */
-    public async deactivate(): Promise<void> {
-        this.dispose();
-    }
-
+    
     /**
      * Dispose of resources
      */
@@ -82,6 +62,7 @@ export abstract class BaseService {
 export interface IPreviewService {
     createOrShow(document: vscode.TextDocument): void;
     revive(panel: vscode.WebviewPanel): void;
+    previewMarkdownSection(documentUri: vscode.Uri, filePath: string, section?: string, index?: number): Promise<void>;
     dispose(): void;
 }
 
@@ -103,6 +84,9 @@ export interface IFileService {
     openFile(relativePath: string, baseUri: vscode.Uri): Promise<vscode.TextDocument>;
     resolvePath(relativePath: string, baseUri: vscode.Uri): vscode.Uri;
     isMermaidFile(document: vscode.TextDocument): boolean;
+    isMarkdownFile(document: vscode.TextDocument): boolean;
+    openMarkdownFile(relativePath: string, baseUri: vscode.Uri, section?: string): Promise<vscode.TextDocument>;
+    getDocumentHash(document: vscode.TextDocument): string;
 }
 
 /**
@@ -111,6 +95,28 @@ export interface IFileService {
 export interface IConfigService {
     getPreviewColumn(): vscode.ViewColumn;
     get<T>(key: string, defaultValue: T): T;
+}
+
+/**
+ * Service interface for Markdown operations
+ */
+export interface IMarkdownService {
+    parseMarkdownSections(document: vscode.TextDocument): Promise<any[]>;
+    findMermaidBlock(document: vscode.TextDocument, section?: string, index?: number): Promise<string | null>;
+    clearCaches(): void;
+    clearDocumentCache(uri: vscode.Uri): void;
+    getCacheStats(): { documentCache: number; sectionCache: number };
+}
+
+/**
+ * Parsed MermaidChart link information
+ */
+export interface MermaidChartLink {
+    filePath: string;
+    section?: string;
+    index?: number;
+    lineNumber: number;
+    column: number;
 }
 
 /**
@@ -149,6 +155,11 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
 
     // Regex to find [MermaidChart: path] patterns - optimized for performance
     private readonly mermaidChartRegex = /\[MermaidChart:\s*([^\]]+\.(mmd|mermaid|md))\s*\]/gi;
+
+    // Extended regex to support sections and indexes: [MermaidChart: path#section:index]
+    // Pattern: [MermaidChart: filepath][#section][:index]
+    // Groups: 1=file path (up to extension), 2=section, 3=index
+    private readonly mermaidChartExtendedRegex = /\[MermaidChart:\s*([^\]]+\.(?:md|mmd|mermaid))(?:#([^:]+))?(?::(\d+))?\s*\]/gi;
 
     provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
         // Quick check: if file is too large, skip processing for performance
@@ -192,32 +203,58 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
         let matchCount = 0;
 
         // Reset regex lastIndex
-        this.mermaidChartRegex.lastIndex = 0;
+        this.mermaidChartExtendedRegex.lastIndex = 0;
 
         // Limit matches for performance (max 20 CodeLens per file)
-        while ((match = this.mermaidChartRegex.exec(text)) !== null && matchCount < 20) {
+        while ((match = this.mermaidChartExtendedRegex.exec(text)) !== null && matchCount < 20) {
             matchCount++;
             const startIndex = match.index;
             const endIndex = startIndex + match[0].length;
             const filePath = match[1].trim();
+            const section = match[2]?.trim(); // Optional section
+            const index = match[3] ? parseInt(match[3], 10) : undefined; // Optional index
 
             const startPos = document.positionAt(startIndex);
             const endPos = document.positionAt(endIndex);
             const range = new vscode.Range(startPos, endPos);
 
-            // Add CodeLens for preview action
-            codeLenses.push(new vscode.CodeLens(range, {
-                title: "Preview",
-                command: "mermaidChart.preview",
-                arguments: [document.uri, filePath]
-            }));
+            // Build display title
+            let displayTitle = filePath;
+            if (section) {
+                displayTitle += `#${section}`;
+            }
+            if (index) {
+                displayTitle += `:${index}`;
+            }
 
-            // Add CodeLens for open file action
-            codeLenses.push(new vscode.CodeLens(range, {
-                title: "Open",
-                command: "mermaidChart.openFile",
-                arguments: [document.uri, filePath]
-            }));
+            // Determine command and arguments based on file type
+            if (filePath.endsWith('.md')) {
+                // Markdown file - use enhanced commands with section/index support
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Preview",
+                    command: "mermaidChart.previewMarkdown",
+                    arguments: [document.uri, { filePath, section, index }]
+                }));
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Open",
+                    command: "mermaidChart.openFileAtSection",
+                    arguments: [document.uri, { filePath, section, index }]
+                }));
+            } else {
+                // Traditional mermaid file - use existing commands
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Preview",
+                    command: "mermaidChart.preview",
+                    arguments: [document.uri, filePath]
+                }));
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Open",
+                    command: "mermaidChart.openFile",
+                    arguments: [document.uri, filePath]
+                }));
+            }
         }
 
         return codeLenses;

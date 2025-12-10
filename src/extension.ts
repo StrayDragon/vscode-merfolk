@@ -6,6 +6,7 @@ import { PreviewService } from './services/previewService';
 import { CodeLensService } from './services/codeLensService';
 import { FileService } from './services/fileService';
 import { ConfigService } from './services/configService';
+import { MarkdownService } from './services/markdownService';
 
 /**
  * Refactored extension entry point using IoC container
@@ -44,6 +45,7 @@ function registerServices(container: DIContainer): void {
     // Core services
     container.registerSingleton('FileService', (c) => new FileService(c));
     container.registerSingleton('ConfigService', (c) => new ConfigService(c));
+    container.registerSingleton('MarkdownService', (c) => new MarkdownService(c));
 
     // Feature services
     container.registerSingleton('PreviewService', (c) => new PreviewService(c));
