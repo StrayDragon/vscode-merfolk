@@ -1,0 +1,10 @@
+flowchart LR
+    A[开始] --> B[处理数据]
+    B --> C{判断结果}
+    C -->|成功| D[完成]
+    C -->|失败| E[重试]
+    E --> B
+
+    style A fill:#9f9,stroke:#333,stroke-width:2px
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style E fill:#ff9,stroke:#333,stroke-width:2px

@@ -1,0 +1,48 @@
+# Basic Mermaid Syntax Highlighting
+
+This example demonstrates the basic syntax highlighting capabilities for `.mmd` and `.mermaid` files.
+
+## Simple Flowchart
+```mermaid
+flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Process 1]
+    B -->|No| D[Process 2]
+    C --> E[End]
+    D --> E
+```
+
+## Sequence Diagram
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant Bob
+    Alice->>John: Hello John, how are you?
+    loop Healthcheck
+        John->>John: Fight against hypochondria
+    end
+    Note right of John: Rational thoughts <br/>prevail!
+    John-->>Alice: Great!
+    John->>Bob: How about you?
+    Bob-->>John: Jolly good!
+```
+
+## Class Diagram
+```mermaid
+classDiagram
+    class Animal {
+        +age: int
+        +gender: string
+        +isMammal()
+    }
+    class Duck {
+        +beakColor: string
+        +swim()
+    }
+    class Fish {
+        -sizeInFeet: int
+        +canEat()
+    }
+    Animal <|-- Duck
+    Animal <|-- Fish
+```

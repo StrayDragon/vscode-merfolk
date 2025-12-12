@@ -7,32 +7,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Development Workflow
 ```bash
 # Install dependencies
-just install
-# or
 pnpm install
 
 # Watch mode for development (runs both TypeScript compiler and esbuild)
-just
-# or
 pnpm run watch
 
 # Build for production
-just build
-# or
 pnpm run package
 
 # Lint and type check
-just lint
-# or
 pnpm run lint && pnpm run check-types
 
 # Run tests (not yet implemented)
-just test
-# or
 pnpm run test
-
-# Package extension as VSIX file
-just package-vsix
 ```
 
 ### VS Code Development
@@ -58,17 +45,17 @@ This is a **VS Code extension** that provides Mermaid diagram preview functional
    - Handles service resolution and lifecycle
 
 3. **Services Layer** - Feature implementations
-   - **PreviewService** (`src/services/previewService.ts:10`) - Manages preview panels
-   - **CodeLensService** (`src/services/codeLensService.ts:9`) - Handles CodeLens provider registration
-   - **FileService** (`src/services/fileService.ts:9`) - File path resolution and operations
-   - **ConfigService** (`src/services/configService.ts:9`) - Configuration management
+   - **PreviewService** (`src/services/previewService.ts`) - Manages preview panels
+   - **CodeLensService** (`src/services/codeLensService.ts`) - Handles CodeLens provider registration
+   - **FileService** (`src/services/fileService.ts`) - File path resolution and operations
+   - **ConfigService** (`src/services/configService.ts`) - Configuration management
 
 4. **Providers Layer** - VS Code integration
-   - **ActivationProvider** (`src/providers/activationProvider.ts:8`) - Handles extension activation
-   - **CommandProvider** (`src/providers/commandProvider.ts:9`) - Registers all commands
+   - **ActivationProvider** (`src/providers/activationProvider.ts`) - Handles extension activation
+   - **CommandProvider** (`src/providers/commandProvider.ts`) - Registers all commands
 
 5. **UI Components** - User interface
-   - **PreviewPanel** (`src/ui/preview/previewPanel.ts:5`) - Dedicated preview panel with webview
+   - **PreviewPanel** (`src/ui/preview/previewPanel.ts`) - Dedicated preview panel with webview
    - Supports zoom, pan, and export functionality
    - Auto-updates on document changes with debouncing
 
@@ -82,7 +69,7 @@ This is a **VS Code extension** that provides Mermaid diagram preview functional
 - **TypeScript**: Type checking (`tsconfig.json`)
 - **esbuild**: Bundling (`esbuild.js`) - watches `src/extension.ts` and outputs to `dist/extension.js`
 - **ESLint**: Linting (`eslint.config.mjs`)
-- **Just**: Task runner (`justfile`) - provides convenient command shortcuts
+- **npm-run-all**: Parallel task runner for watch mode
 
 ### Language Support
 
@@ -158,7 +145,7 @@ vscode-merfolk/
 ├── assets/                # Static assets for webviews (Mermaid.js)
 ├── syntaxes/              # Mermaid syntax highlighting
 ├── dist/                  # Built extension (generated)
-├── justfile               # Task runner commands
+├── eslint.config.mjs      # ESLint configuration
 ├── esbuild.js            # Bundler configuration
 ├── package.json          # Dependencies and scripts
 └── tsconfig.json         # TypeScript configuration
@@ -173,14 +160,14 @@ vscode-merfolk/
 
 ### Modifying Preview Behavior
 - Panel creation: `PreviewPanel.createOrShow()` in `previewPanel.ts:13`
-- Webview HTML generation: `PreviewPanel._getHtmlForWebview()` in `previewPanel.ts:185`
-- Message handling: `PreviewPanel` message handler in `previewPanel.ts:73-92`
+- Webview HTML generation: `PreviewPanel._getHtmlForWebview()` in `previewPanel.ts`
+- Message handling: `PreviewPanel` message handler in `previewPanel.ts`
 
 ### Working with MermaidChart Links
 - Detection logic: `MermaidChartCodeLensProvider.provideCodeLenses()` in `core/service.ts:153`
 - Regex pattern: `/\[MermaidChart:\s*([^\]]+\.(mmd|mermaid|md))\s*\]/gi` in `core/service.ts:151`
 - Link format: `[MermaidChart: path/to/file.mmd]`
-- CodeLens refresh: `CodeLensService.refresh()` in `codeLensService.ts:104`
+- CodeLens refresh: `CodeLensService.refresh()` in `codeLensService.ts`
 
 ### Adding a New Service
 1. Create interface in `core/service.ts` or `core/types.ts`

@@ -31,33 +31,40 @@ export class CommandProvider extends BaseService implements ICommandProvider {
         });
 
         
-        // Register MermaidChart commands for CodeLens actions
-        this.registerCommand('mermaidChart.preview', (documentUri: vscode.Uri, filePath: string) => {
-            this.fileService.openFile(filePath, documentUri).then(document => {
-                this.previewService.createOrShow(document);
-            }, error => {
-                vscode.window.showErrorMessage(`Failed to open file: ${error.message}`);
-            });
-        });
-
-        this.registerCommand('mermaidChart.openFile', async (documentUri: vscode.Uri, filePath: string) => {
+        // Register unified MermaidChart commands for CodeLens actions
+        this.registerCommand('mermaidChart.preview', async (documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }) => {
             try {
-                const document = await this.fileService.openFile(filePath, documentUri);
-                await vscode.window.showTextDocument(document);
+                await this.previewService.previewMermaidById(
+                    documentUri,
+                    linkInfo.filePath,
+                    linkInfo.id
+                );
             } catch (error) {
-                vscode.window.showErrorMessage(`Failed to open file: ${error instanceof Error ? error.message : String(error)}`);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to preview MermaidChart: ${errorMessage}`);
             }
         });
 
-        // Debug command to refresh CodeLens
+        this.registerCommand('mermaidChart.openFile', async (documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }) => {
+            try {
+                const document = await this.fileService.openFile(linkInfo.filePath, documentUri);
+                await vscode.window.showTextDocument(document);
+
+                // If it's a markdown file with an ID, we could potentially navigate to the line
+                // but for now, just open the file
+                if (linkInfo.id && this.fileService.isMarkdownFile(document)) {
+                    vscode.window.showInformationMessage(`Opened ${linkInfo.filePath}. ID "${linkInfo.id}" reference found.`);
+                }
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to open file: ${errorMessage}`);
+            }
+        });
+
+              // Debug command to refresh CodeLens
         this.registerCommand('mermaidChart.refreshCodeLens', () => {
-            console.log('[MermaidChart] Manual CodeLens refresh triggered');
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor) {
-                const text = activeEditor.document.getText();
-                console.log(`[MermaidChart] Checking active document: ${activeEditor.document.fileName}`);
-                console.log(`[MermaidChart] Document contains MermaidChart: ${/\[MermaidChart:/i.test(text)}`);
-
                 // Get the CodeLens service and refresh
                 const codeLensService = this.container.resolve<ICodeLensService>('CodeLensService');
                 if (codeLensService) {

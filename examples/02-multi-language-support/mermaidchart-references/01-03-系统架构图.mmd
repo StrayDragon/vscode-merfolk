@@ -1,0 +1,35 @@
+graph TB
+    subgraph "前端层"
+        UI[React应用]
+        STATE[状态管理]
+    end
+
+    subgraph "API层"
+        GATEWAY[API网关]
+        AUTH[认证服务]
+        API1[用户API]
+        API2[数据API]
+    end
+
+    subgraph "数据层"
+        REDIS[(Redis缓存)]
+        POSTGRES[(PostgreSQL)]
+        S3[(文件存储)]
+    end
+
+    UI --> GATEWAY
+    STATE --> GATEWAY
+    GATEWAY --> AUTH
+    AUTH --> API1
+    AUTH --> API2
+
+    API1 --> REDIS
+    API1 --> POSTGRES
+    API2 --> POSTGRES
+    API2 --> S3
+
+    style UI fill:#e1f5fe
+    style STATE fill:#f3e5f5
+    style GATEWAY fill:#fff3e0
+    style REDIS fill:#ffebee
+    style POSTGRES fill:#e8f5e8

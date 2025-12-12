@@ -19,6 +19,7 @@
   "activationEvents": [
     "onCommand:mermaid.preview",
     "onLanguage:mermaid",
+    "onLanguage:markdown",
     "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:python",
@@ -67,7 +68,7 @@
       },
       {
         "command": "mermaidChart.preview",
-        "title": "Preview MermaidChart Diagram"
+        "title": "Preview MermaidChart Link"
       },
       {
         "command": "mermaidChart.openFile",
@@ -130,19 +131,12 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
-    "compile-tests": "tsc -p . --outDir out",
-    "watch-tests": "tsc -p . -w --outDir out",
-    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
     "check-types": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vscode-test"
+    "lint": "eslint src"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/vscode": "^1.105.1",
-    "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.1",
     "eslint": "^9.39.1",
