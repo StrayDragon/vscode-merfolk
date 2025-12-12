@@ -60,9 +60,8 @@ classDiagram
 
 测试链接语法：
 
-- 传统 .mmd 文件：[MermaidChart: ./test-diagram.mmd]
-- 带 ID 的 markdown 引用：[MermaidChart: ./test-syntax.md@arch1]
-- 带 ID 的 markdown 引用：[MermaidChart: ./test-syntax.md@pipeline]
-- 带 ID 的 markdown 引用：[MermaidChart: ./test-syntax.md@components]
-- 错误的 ID 引用：[MermaidChart: ./test-syntax.md@nonexistent]
-- 缺少 ID 的 markdown 引用：[MermaidChart: ./test-syntax.md]
+- 带 ID 的 markdown 引用（本文件）：[MermaidChart: ./inline-mermaid-code-block-ref.md@arch1]
+- 带 ID 的 markdown 引用（本文件）：[MermaidChart: ./inline-mermaid-code-block-ref.md@pipeline]
+- 带 ID 的 markdown 引用（本文件）：[MermaidChart: ./inline-mermaid-code-block-ref.md@components]
+- 错误的 ID 引用：[MermaidChart: ./inline-mermaid-code-block-ref.md@nonexistent]
+- 缺少 ID 的 markdown 引用：[MermaidChart: ./inline-mermaid-code-block-ref.md]

@@ -1,0 +1,28 @@
+# Advanced Flowchart in Subdirectory
+
+This diagram is located in a subdirectory to test relative path references.
+
+```mermaid
+flowchart TB
+    subgraph "Input Phase"
+        A[Start] --> B[Read Configuration]
+        B --> C[Validate Input]
+    end
+
+    subgraph "Processing Phase"
+        C --> D{Valid?}
+        D -->|Yes| E[Process Data]
+        D -->|No| F[Log Error]
+        F --> B
+        E --> G[Generate Output]
+    end
+
+    subgraph "Output Phase"
+        G --> H[Save Results]
+        H --> I[Notify Users]
+        I --> J[End]
+    end
+
+    style A fill:#9f9,stroke:#333,stroke-width:2px
+    style J fill:#f9f,stroke:#333,stroke-width:2px
+```
