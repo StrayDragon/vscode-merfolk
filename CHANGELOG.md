@@ -6,22 +6,45 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ## [0.0.5] - 2025-01-XX
 
-### Added
-- **Markdown 章节支持**: 扩展 `[MermaidChart:]` 语法，支持从 Markdown 文件的特定章节提取 Mermaid 图表
-- **新语法格式**:
-  - `[MermaidChart: doc.md]` - 整个文档的第一个 mermaid 块
-  - `[MermaidChart: doc.md#section-name]` - 特定章节的第一个 mermaid 块
-  - `[MermaidChart: doc.md#section-name:2]` - 特定章节的第 N 个 mermaid 块
-  - `[MermaidChart: doc.md:3]` - 整个文档的第 N 个 mermaid 块
-- **智能导航**: 点击 Open 按钮可以直接导航到 Markdown 文件中的对应章节
-- **性能优化**: 实现多层缓存架构，提升大文档解析性能
-- **新增配置选项**:
-  - `merfolk.markdown.enabled`: 启用/禁用 Markdown 支持
-  - `merfolk.markdown.cacheSize`: 缓存大小配置
-  - `merfolk.markdown.cacheTTL`: 缓存生存时间
+### 🚨 Breaking Changes
+- **简化语法**: 完全重新设计 MermaidChart 语法，提升易用性和直观性
+- **移除章节语法**: 不再支持 `#section` 和 `:index` 语法，改用基于 ID 的引用
+- **配置简化**: 移除复杂的 Markdown 相关配置选项
 
-### Improved
-- 增强 CodeLens 提供器，支持扩展语法解析
+### ✨ New Features
+- **基于 ID 的 Markdown 引用**: 使用 `<!-- merfolk@<id> -->` 注释标记 mermaid 块
+- **新语法格式**:
+  - `[MermaidChart: diagram.mmd]` - 直接引用 .mmd 文件
+  - `[MermaidChart: docs.md@flowchart]` - 引用 markdown 文件中带 ID 的图表
+- **友好错误处理**: 显示可用 ID 列表，提供详细的使用指导
+
+### 🗑️ Removed
+- 章节解析语法：`[MermaidChart: doc.md#section]`
+- 索引用法：`[MermaidChart: doc.md:3]`
+- 配置选项：`merfolk.markdown.enabled`, `merfolk.markdown.cacheSize`, `merfolk.markdown.parseOnSave`, `merfolk.markdown.headingLevels`
+- 命令：`mermaidChart.previewMarkdown`, `mermaidChart.openFileAtSection`
+
+### 📚 Migration Guide
+如果你之前使用的是章节语法，请按以下步骤迁移：
+
+1. **在 Markdown 文件中添加 ID 注释**：
+   ```markdown
+   <!-- merfolk@architecture -->
+   ```mermaid
+   graph TB
+       A --> B
+   ```
+   ```
+
+2. **更新引用语法**：
+   - 旧：`[MermaidChart: docs.md#architecture]`
+   - 新：`[MermaidChart: docs.md@architecture]`
+
+### 🛠️ Internal Changes
+- 重构 MarkdownService，简化缓存架构
+- 统一命令处理逻辑，减少复杂性
+- 优化正则表达式性能
+- 改进错误消息和用户体验
 - 优化文件路径解析算法，支持更复杂的相对路径
 - 改进错误处理，提供更友好的错误信息
 - 重构代码架构，使用依赖注入模式

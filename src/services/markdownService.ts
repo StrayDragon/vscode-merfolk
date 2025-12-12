@@ -4,69 +4,61 @@ import { generateContentHash } from '../shared/utils/fileType';
 import { DIContainer } from '../core/container';
 
 /**
- * Markdown section information
+ * Mermaid block information found by ID
  */
-export interface MarkdownSection {
-    title: string;
-    level: number;
-    startIndex: number;
-    endIndex: number;
-    mermaidBlocks: MermaidBlock[];
-}
-
-/**
- * Mermaid block information within a section
- */
-export interface MermaidBlock {
+interface MermaidBlockInfo {
     content: string;
-    startIndex: number;
-    endIndex: number;
-    indexInSection: number;
-    indexInDocument: number;
+    line: number;
+    id: string;
 }
 
 /**
  * Cached document structure
  */
 interface CachedDocument {
-    sections: MarkdownSection[];
+    mermaidBlocks: MermaidBlockInfo[];
+    availableIds: string[];
     lastModified: number;
     fileHash: string;
-    mermaidCount: number;
 }
 
 /**
- * Cached section content
- */
-interface CachedSection {
-    content: string;
-    lastModified: number;
-    sectionHash: string;
-}
-
-/**
- * Service for parsing and extracting Mermaid content from Markdown files
+ * Service for parsing and extracting Mermaid content from Markdown files using ID-based comments
  */
 export class MarkdownService extends BaseService {
-    // L1: Document structure cache
+    // Document cache for ID-based lookups
     private documentCache = new Map<string, CachedDocument>();
-
-    // L2: Section content cache
-    private sectionCache = new Map<string, CachedSection>();
 
     // Cache configuration
     private readonly CACHE_TTL = 30000; // 30 seconds
     private readonly MAX_CACHE_SIZE = 100;
-    private readonly MAX_SECTION_CACHE_SIZE = 500;
 
     constructor(container: DIContainer) {
         super(container);
     }
 
     /**
-     * Parse markdown document into sections
+     * Find mermaid block by ID in markdown document
      */
-    public async parseMarkdownSections(document: vscode.TextDocument): Promise<MarkdownSection[]> {
+    public async findMermaidById(document: vscode.TextDocument, id: string): Promise<string | null> {
+        const mermaidBlocks = await this.parseDocumentForIds(document);
+        const block = mermaidBlocks.find(block => block.id === id);
+
+        return block ? block.content : null;
+    }
+
+    /**
+     * Get all available IDs in a markdown document
+     */
+    public async getAvailableIds(document: vscode.TextDocument): Promise<string[]> {
+        const mermaidBlocks = await this.parseDocumentForIds(document);
+        return mermaidBlocks.map(block => block.id);
+    }
+
+    /**
+     * Parse document to find all mermaid blocks with IDs
+     */
+    private async parseDocumentForIds(document: vscode.TextDocument): Promise<MermaidBlockInfo[]> {
         const cacheKey = document.uri.toString();
         const now = Date.now();
         const fileHash = generateContentHash(document.getText());
@@ -76,214 +68,100 @@ export class MarkdownService extends BaseService {
         if (cached &&
             (now - cached.lastModified) < this.CACHE_TTL &&
             cached.fileHash === fileHash) {
-            return cached.sections;
+            return cached.mermaidBlocks;
         }
 
         // Parse document
-        const sections = this.parseMarkdownDocument(document.getText());
+        const mermaidBlocks = this.parseMermaidBlocks(document.getText());
 
         // Update cache
         this.updateDocumentCache(cacheKey, {
-            sections,
+            mermaidBlocks,
+            availableIds: mermaidBlocks.map(block => block.id),
             lastModified: now,
-            fileHash,
-            mermaidCount: sections.reduce((sum, s) => sum + s.mermaidBlocks.length, 0)
+            fileHash
         });
 
-        return sections;
+        return mermaidBlocks;
     }
 
     /**
-     * Find a specific mermaid block in a document
+     * Parse markdown text to find mermaid blocks with ID comments
      */
-    public async findMermaidBlock(
-        document: vscode.TextDocument,
-        section?: string,
-        index?: number
-    ): Promise<string | null> {
-        const cacheKey = this.getSectionCacheKey(document.uri, section, index);
-        const now = Date.now();
-        const fileHash = generateContentHash(document.getText());
-
-        // Check section cache
-        const cachedSection = this.sectionCache.get(cacheKey);
-        if (cachedSection &&
-            (now - cachedSection.lastModified) < this.CACHE_TTL &&
-            cachedSection.sectionHash === fileHash) {
-            return cachedSection.content;
-        }
-
-        // Parse document to find the block
-        const sections = await this.parseMarkdownSections(document);
-        let targetSection: MarkdownSection | undefined;
-        let targetBlock: MermaidBlock | undefined;
-
-        if (section) {
-            // Find specific section
-            targetSection = sections.find(s => s.title === section);
-            if (!targetSection) {
-                const availableSections = sections.map(s => `"${s.title}"`).join(', ');
-                throw new Error(`Section "${section}" not found in document. Available sections: ${availableSections}`);
-            }
-        } else {
-            // Use first section with mermaid blocks or create a virtual section
-            const allMermaidBlocks: MermaidBlock[] = [];
-            sections.forEach(s => allMermaidBlocks.push(...s.mermaidBlocks));
-
-            targetSection = sections.find(s => s.mermaidBlocks.length > 0) || {
-                title: 'Document',
-                level: 0,
-                startIndex: 0,
-                endIndex: document.lineCount - 1,
-                mermaidBlocks: allMermaidBlocks
-            };
-        }
-
-        if (!targetSection || targetSection.mermaidBlocks.length === 0) {
-            throw new Error(`No Mermaid blocks found${section ? ` in section "${section}"` : ' in document'}`);
-        }
-
-        // Find specific block by index
-        const blockIndex = (index || 1) - 1; // Convert to 0-based
-        if (blockIndex < 0 || blockIndex >= targetSection.mermaidBlocks.length) {
-            throw new Error(
-                section
-                    ? `Section "${section}" only contains ${targetSection.mermaidBlocks.length} mermaid block(s). Requested index: ${index || 1}`
-                    : `Document only contains ${targetSection.mermaidBlocks.length} mermaid block(s). Requested index: ${index || 1}`
-            );
-        }
-
-        targetBlock = targetSection.mermaidBlocks[blockIndex];
-
-        // Update section cache
-        this.updateSectionCache(cacheKey, {
-            content: targetBlock.content,
-            lastModified: now,
-            sectionHash: fileHash
-        });
-
-        return targetBlock.content;
-    }
-
-    /**
-     * Parse markdown text into sections
-     */
-    private parseMarkdownDocument(text: string): MarkdownSection[] {
+    private parseMermaidBlocks(text: string): MermaidBlockInfo[] {
         const lines = text.split('\n');
-        const sections: MarkdownSection[] = [];
-        let currentSection: MarkdownSection | null = null;
-        let mermaidCounter = 0;
-        let documentStartIndex = 0;
+        const mermaidBlocks: MermaidBlockInfo[] = [];
 
-        // Find first section or create default
+        // Pattern to match <!-- merfolk@id --> comments
+        const idPattern = /<!--\s*merfolk@([^@\s>]+)\s*-->/gi;
+
+        let currentId: string | null = null;
+        let pendingIds: { line: number; id: string }[] = [];
+
+        // First pass: collect all ID comments and their line numbers
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+            let match;
 
-            if (headingMatch) {
-                // If we haven't created any section yet and this is not the first line,
-                // create a default section for content before first heading
-                if (!currentSection && i > documentStartIndex) {
-                    currentSection = {
-                        title: 'Document Start',
-                        level: 0,
-                        startIndex: documentStartIndex,
-                        endIndex: i - 1,
-                        mermaidBlocks: []
-                    };
-                    sections.push(currentSection);
-                }
+            // Reset regex before each line to avoid issues with lastIndex
+            idPattern.lastIndex = 0;
+            while ((match = idPattern.exec(line)) !== null) {
+                pendingIds.push({ line: i, id: match[1] });
+            }
+        }
 
-                // Save previous section
-                if (currentSection) {
-                    currentSection.endIndex = i - 1;
-                    sections.push(currentSection);
-                }
+        // Sort pending IDs by line number
+        pendingIds.sort((a, b) => a.line - b.line);
 
-                // Create new section
-                currentSection = {
-                    title: headingMatch[2].trim(),
-                    level: headingMatch[1].length,
-                    startIndex: i,
-                    endIndex: -1,
-                    mermaidBlocks: []
-                };
+        // Second pass: find mermaid blocks and associate with IDs
+        let pendingIdIndex = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            // Check if we have an ID comment before this mermaid block
+            while (pendingIdIndex < pendingIds.length && pendingIds[pendingIdIndex].line < i) {
+                pendingIdIndex++;
             }
 
-            // Detect mermaid code blocks
-            if (line.trim() === '```mermaid') {
-                mermaidCounter++;
-                const startIndex = i;
+            if (pendingIdIndex < pendingIds.length && pendingIds[pendingIdIndex].line <= i) {
+                currentId = pendingIds[pendingIdIndex].id;
+                pendingIdIndex++;
+            }
+
+            // Detect mermaid code block start
+            if (line === '```mermaid') {
+                if (!currentId) {
+                    // Skip mermaid blocks without ID
+                    continue;
+                }
+
+                const startIndex = i + 1;
+                let endIndex = startIndex;
 
                 // Find code block end
-                let endIndex = i + 1;
                 while (endIndex < lines.length && lines[endIndex].trim() !== '```') {
                     endIndex++;
                 }
 
                 if (endIndex < lines.length) {
-                    const blockContent = lines.slice(i + 1, endIndex).join('\n');
+                    // Extract mermaid content
+                    const content = lines.slice(startIndex, endIndex).join('\n');
 
-                    // If no current section, create a default one
-                    if (!currentSection) {
-                        currentSection = {
-                            title: 'Document Start',
-                            level: 0,
-                            startIndex: documentStartIndex,
-                            endIndex: -1,
-                            mermaidBlocks: []
-                        };
-                        sections.push(currentSection);
-                    }
-
-                    currentSection.mermaidBlocks.push({
-                        content: blockContent,
-                        startIndex: i,
-                        endIndex: endIndex,
-                        indexInSection: currentSection.mermaidBlocks.length + 1,
-                        indexInDocument: mermaidCounter
+                    mermaidBlocks.push({
+                        content,
+                        line: i,
+                        id: currentId
                     });
                 }
 
-                i = endIndex; // Skip entire code block
+                // Reset current ID after using it
+                currentId = null;
+                i = endIndex; // Skip to end of code block
             }
         }
 
-        // Handle last section
-        if (currentSection) {
-            currentSection.endIndex = lines.length - 1;
-            sections.push(currentSection);
-        } else if (sections.length === 0) {
-            // Create default section if no headings found
-            sections.push({
-                title: 'Document',
-                level: 0,
-                startIndex: 0,
-                endIndex: lines.length - 1,
-                mermaidBlocks: []
-            });
-        }
-
-        return sections;
-    }
-
-    
-    /**
-     * Get cache key for document structure
-     */
-    private getDocumentCacheKey(uri: vscode.Uri): string {
-        return `doc:${uri.toString()}`;
-    }
-
-    /**
-     * Get cache key for section content
-     */
-    private getSectionCacheKey(uri: vscode.Uri, section?: string, index?: number): string {
-        const baseKey = uri.toString();
-        if (section) {
-            return `section:${baseKey}#${section}:${index || 1}`;
-        }
-        return `section:${baseKey}:${index || 1}`;
+        return mermaidBlocks;
     }
 
     /**
@@ -301,53 +179,25 @@ export class MarkdownService extends BaseService {
     }
 
     /**
-     * Update section cache with LRU eviction
-     */
-    private updateSectionCache(key: string, data: CachedSection): void {
-        // Evict oldest if cache is full
-        if (this.sectionCache.size >= this.MAX_SECTION_CACHE_SIZE) {
-            const firstKey = this.sectionCache.keys().next().value;
-            if (firstKey) {
-                this.sectionCache.delete(firstKey);
-            }
-        }
-        this.sectionCache.set(key, data);
-    }
-
-    /**
      * Clear all caches
      */
     public clearCaches(): void {
         this.documentCache.clear();
-        this.sectionCache.clear();
     }
 
     /**
-     * Clear caches for specific document
+     * Clear cache for specific document
      */
     public clearDocumentCache(uri: vscode.Uri): void {
-        const docKey = this.getDocumentCacheKey(uri);
-        this.documentCache.delete(docKey);
-
-        // Clear related section caches
-        const uriStr = uri.toString();
-        const keysToDelete: string[] = [];
-        for (const entry of this.sectionCache.entries()) {
-            const key = entry[0];
-            if (key.includes(uriStr)) {
-                keysToDelete.push(key);
-            }
-        }
-        keysToDelete.forEach(key => this.sectionCache.delete(key));
+        this.documentCache.delete(uri.toString());
     }
 
     /**
      * Get cache statistics
      */
-    public getCacheStats(): { documentCache: number; sectionCache: number } {
+    public getCacheStats(): { documentCache: number } {
         return {
-            documentCache: this.documentCache.size,
-            sectionCache: this.sectionCache.size
+            documentCache: this.documentCache.size
         };
     }
 

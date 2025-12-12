@@ -33,20 +33,31 @@ Merfolk 是一个轻量级的 Mermaid 功能增强的 VS Code 插件，让你在
 
 在任何类型的文件中，你都可以插入特殊格式的链接来引用 Mermaid 图表：
 
-#### 基础语法
+#### 支持的语法
+
+**引用 .mmd 文件：**
 ```
 [MermaidChart: path/to/diagram.mmd]
 ```
 
-#### Markdown 章节支持（新功能）
-插件现在支持从 Markdown 文件中的特定章节提取 Mermaid 图表：
+**引用 Markdown 文件中的图表：**
+```markdown
+<!-- 在你的 markdown 文件中标记 mermaid 块 -->
+<!-- merfolk@arch1 -->
+```mermaid
+graph TB
+    A[开始] --> B[处理]
+    B --> C[结束]
+```
 
+<!-- 在其他文件中引用 -->
+[MermaidChart: docs/architecture.md@arch1]
 ```
-[MermaidChart: doc.md]                    # 整个文档的第一个 mermaid 块
-[MermaidChart: doc.md#section-name]       # 特定章节的第一个 mermaid 块
-[MermaidChart: doc.md#section-name:2]     # 特定章节的第 N 个 mermaid 块
-[MermaidChart: doc.md:3]                  # 整个文档的第 N 个 mermaid 块
-```
+
+#### 如何使用
+
+1. **标记 Mermaid 块**：在 Markdown 文件中的 mermaid 代码块前添加 `<!-- merfolk@<id> -->` 注释
+2. **引用图表**：使用 `[MermaidChart: path/to/file.md@<id>]` 语法引用标记的图表
 
 插件会自动识别这种格式，并在链接旁边显示两个操作按钮：
 
@@ -73,12 +84,6 @@ Merfolk 是一个轻量级的 Mermaid 功能增强的 VS Code 插件，让你在
   - `left`: 在最左侧列
   - `active`: 在当前编辑器列
   - `one/two/three`: 在指定列
-
-- **merfolk.markdown.enabled**: 是否启用 Markdown 文件支持（默认: true）
-
-- **merfolk.markdown.cacheSize**: Markdown 文档缓存大小（默认: 100）
-
-- **merfolk.markdown.cacheTTL**: 缓存生存时间，毫秒（默认: 30000）
 
 ## 工作原理
 

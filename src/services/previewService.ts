@@ -6,7 +6,7 @@ import { isMermaidFile, isMarkdownFile } from '../shared/utils/fileType';
 
 /**
  * Service for managing preview panels
- * Wraps the existing PreviewPanel class with dependency injection
+ * Handles both traditional .mmd files and ID-based markdown references
  */
 export class PreviewService extends BaseService implements IPreviewService {
     private fileService: IFileService;
@@ -35,13 +35,13 @@ export class PreviewService extends BaseService implements IPreviewService {
     }
 
     /**
-     * Preview markdown section with mermaid content
+     * Preview mermaid content by file path and optional ID
+     * Unified method that handles both .mmd files and .md@id references
      */
-    public async previewMarkdownSection(
+    public async previewMermaidById(
         documentUri: vscode.Uri,
         filePath: string,
-        section?: string,
-        index?: number
+        id?: string
     ): Promise<void> {
         try {
             // Resolve the target file path
@@ -56,23 +56,39 @@ export class PreviewService extends BaseService implements IPreviewService {
                 // Traditional mermaid file - use entire content
                 mermaidContent = targetDocument.getText();
             } else if (isMarkdownFile(targetDocument)) {
-                // Markdown file - extract specific mermaid block
-                mermaidContent = await this.markdownService.findMermaidBlock(
-                    targetDocument,
-                    section,
-                    index
-                ) || '';
+                // Markdown file - extract content by ID
+                if (!id) {
+                    const availableIds = await this.markdownService.getAvailableIds(targetDocument);
+                    throw new Error(
+                        `ID is required for markdown files.\n\n` +
+                        `Available IDs: ${availableIds.join(', ') || 'None'}\n\n` +
+                        `Usage: [MermaidChart: ${filePath}@<id>]`
+                    );
+                }
+
+                const mermaidContentResult = await this.markdownService.findMermaidById(targetDocument, id);
+
+                if (!mermaidContentResult) {
+                    const availableIds = await this.markdownService.getAvailableIds(targetDocument);
+                    throw new Error(
+                        `ID "${id}" not found in ${filePath}.\n\n` +
+                        `Available IDs: ${availableIds.join(', ') || 'None'}`
+                    );
+                }
+
+                mermaidContent = mermaidContentResult;
             } else {
-                throw new Error(`Unsupported file type: ${targetUri.fsPath}`);
+                throw new Error(`Unsupported file type: ${filePath}. Only .mmd, .mermaid, and .md files are supported.`);
             }
 
             if (!mermaidContent.trim()) {
-                throw new Error(`No Mermaid content found in ${filePath}${section ? ` (section: ${section})` : ''}${index ? ` (index: ${index})` : ''}`);
+                const identifier = id ? `ID "${id}" in ${filePath}` : filePath;
+                throw new Error(`No Mermaid content found for ${identifier}`);
             }
 
             // Create a temporary document with the extracted content
             const tempUri = vscode.Uri.parse(
-                `mermaid-preview:${encodeURIComponent(filePath)}${section ? `#${section}` : ''}${index ? `:${index}` : ''}.mmd`
+                `mermaid-preview:${encodeURIComponent(filePath)}${id ? `@${id}` : ''}.mmd`
             );
 
             // Create a temporary document in memory
@@ -87,7 +103,7 @@ export class PreviewService extends BaseService implements IPreviewService {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             vscode.window.showErrorMessage(`Failed to preview Mermaid content: ${errorMessage}`);
-            console.error('[PreviewService] Error previewing markdown section:', error);
+            console.error('[PreviewService] Error previewing mermaid by ID:', error);
         }
     }
 
