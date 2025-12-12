@@ -102,6 +102,8 @@ export interface IConfigService {
 export interface IMarkdownService {
     findMermaidById(document: vscode.TextDocument, id: string): Promise<string | null>;
     getAvailableIds(document: vscode.TextDocument): Promise<string[]>;
+    findMermaidByIdWithLine(document: vscode.TextDocument, id: string): Promise<{ content: string; line: number } | null>;
+    getLineForId(document: vscode.TextDocument, id: string): Promise<number | null>;
     clearCaches(): void;
     clearDocumentCache(uri: vscode.Uri): void;
     getCacheStats(): { documentCache: number };

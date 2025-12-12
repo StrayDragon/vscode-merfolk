@@ -56,6 +56,26 @@ export class MarkdownService extends BaseService {
     }
 
     /**
+     * Find mermaid block by ID and return both content and line number
+     */
+    public async findMermaidByIdWithLine(document: vscode.TextDocument, id: string): Promise<{ content: string; line: number } | null> {
+        const mermaidBlocks = await this.parseDocumentForIds(document);
+        const block = mermaidBlocks.find(block => block.id === id);
+
+        return block ? { content: block.content, line: block.line } : null;
+    }
+
+    /**
+     * Get line number for a specific mermaid ID
+     */
+    public async getLineForId(document: vscode.TextDocument, id: string): Promise<number | null> {
+        const mermaidBlocks = await this.parseDocumentForIds(document);
+        const block = mermaidBlocks.find(block => block.id === id);
+
+        return block ? block.line : null;
+    }
+
+    /**
      * Parse document to find all mermaid blocks with IDs
      */
     private async parseDocumentForIds(document: vscode.TextDocument): Promise<MermaidBlockInfo[]> {
