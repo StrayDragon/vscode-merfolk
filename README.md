@@ -50,6 +50,7 @@ graph TB
     B --> C[结束]
 ```
 
+```
 <!-- 在其他文件中引用 -->
 [MermaidChart: docs/architecture.md@arch1]
 ```
