@@ -34,16 +34,24 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.control.mermaid",
-          "match": "\\b(graph|subgraph|flowchart|sequenceDiagram|classDiagram|stateDiagram|stateDiagram-v2|erDiagram|journey|gantt|pie|gitgraph|C4Context|block|architecture|mindmap|timeline|sankey|quadrantChart|requirementDiagram|c4|C4)\\b"
+          "name": "keyword.control.diagram.mermaid",
+          "match": "^\\s*\\b(graph|subgraph|flowchart|flowchart-v2|flowchart-elk|sequenceDiagram|seq|classDiagram|class|stateDiagram|state|stateDiagram-v2|erDiagram|er|journey|gantt|pie|pieChart|gitgraph|C4Context|block|architecture|architecture-beta|mindmap|timeline|zenuml|sankey|quadrantChart|requirementDiagram|c|c4|packet|betty|block-beta|excalidraw)\\b"
         },
         {
-          "name": "keyword.control.mermaid",
-          "match": "\\b(end|class|actor|participant|as|note|loop|alt|else|opt|par|and|rect|state|fork|if|then|else|click|href|callback|target|linkStyle|interpolate|curveBasis|curveLinear|curveStepBefore|curveStepAfter|curveMonotoneX|curveMonotoneY|curveCatmullRom|curveNatural)\\b"
+          "name": "keyword.control.statement.mermaid",
+          "match": "\\b(end|class|actor|participant|as|note|loop|alt|else|opt|par|and|rect|state|fork|if|then|click|href|callback|target)\\b"
         },
         {
-          "name": "storage.type.mermaid",
-          "match": "\\b(TB|TD|BT|RL|LR|left|right|top|bottom|center|start|stop|fork|join)\\b"
+          "name": "keyword.control.style.mermaid",
+          "match": "\\b(linkStyle|interpolate|curveBasis|curveLinear|curveStepBefore|curveStepAfter|curveMonotoneX|curveMonotoneY|curveCatmullRom|curveNatural|style|link|fill|stroke|opacity)\\b"
+        },
+        {
+          "name": "storage.type.direction.mermaid",
+          "match": "\\b(TB|TD|BT|RL|LR|left|right|top|bottom|center)\\b"
+        },
+        {
+          "name": "storage.type.lifecycle.mermaid",
+          "match": "\\b(start|stop|fork|join)\\b"
         },
         {
           "name": "constant.numeric.mermaid",
@@ -92,8 +100,24 @@
     "arrows": {
       "patterns": [
         {
-          "name": "keyword.operator.arrow.mermaid",
-          "match": "(-->|-->o|-->x|->>|-->>|---|--|\\.->|\\.-\\.|\\.->>|\\.->>|\\..->|\\..->>|\\.\\.->|\\.\\.->>|<-->|<--o|<--x|<-->>|<--|<\\.\\.|<\\.->|<\\.->>|<\\..->|<\\..->>|<\\.\\.->|<\\.\\.->>|==>|==|\\.\\.|\\.\\.|\\.-\\.|\\.-\\.|===|\\*\\*-|-\\*-|==\\*|==\\*=|==x|==o|--x|--o|==>|===|\\*-\\*|o--o|x--x|<\\||\\|>|x|\\*)"
+          "name": "keyword.operator.arrow.solid.mermaid",
+          "match": "(?:--?>|<--?>|->>|<-->>|---|--|--x|--o)"
+        },
+        {
+          "name": "keyword.operator.arrow.dotted.mermaid",
+          "match": "(?:\\.\\.-?>|<\\.\\.-?>|\\.->>|<\\.->>|\\.\\.-\\.|<\\.\\.\\.|=+>|=+>)"
+        },
+        {
+          "name": "keyword.operator.arrow.thick.mermaid",
+          "match": "(?:==+>|<==+>|===)"
+        },
+        {
+          "name": "keyword.operator.arrow.circle.mermaid",
+          "match": "(?:[ox]?--+?[ox]|[ox]?==+?[ox]|[ox]?\\.\\.-?\\.[ox]|o--o|x--x)"
+        },
+        {
+          "name": "keyword.operator.arrow.special.mermaid",
+          "match": "(?:\\*\\*-?\\*|-\\*-?->|==\\*|==\\*=|<\\||\\|>)"
         }
       ]
     },

@@ -1,0 +1,1 @@
+使用最高效方式降低markdown内高亮mermaid 语法导致卡顿性能不好, 可以参考 docs/sources_ref/vscode-mermaid-chart 和 docs/sources_ref/vscode-mermaid-preview 中的对markdown 高亮的方式

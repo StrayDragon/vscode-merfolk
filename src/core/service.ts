@@ -108,6 +108,17 @@ export interface IMarkdownService {
 }
 
 /**
+ * Service interface for Syntax Highlighting operations
+ */
+export interface ISyntaxHighlightService {
+    refreshHighlighting(document: vscode.TextDocument): Promise<void>;
+    clearCache(): void;
+    getCacheStats(): { cacheSize: number; cacheHits: number; cacheMisses: number };
+    isEnabled(): boolean;
+    dispose(): void;
+}
+
+/**
  * Parsed MermaidChart link information
  */
 export interface MermaidChartLink {
