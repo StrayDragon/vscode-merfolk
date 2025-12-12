@@ -2,7 +2,7 @@
   "name": "vscode-merfolk",
   "displayName": "Merfolk",
   "description": "Minimal Mermaid diagram preview extension",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "engines": {
     "vscode": "^1.105.1"
   },
@@ -115,7 +115,9 @@
     "grammars": [
       {
         "scopeName": "source.mermaid.embedded.markdown",
-        "injectTo": ["text.html.markdown"],
+        "injectTo": [
+          "text.html.markdown"
+        ],
         "path": "./syntaxes/mermaid-markdown.json"
       },
       {
