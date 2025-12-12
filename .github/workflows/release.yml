@@ -60,3 +60,4 @@ jobs:
             vscode-merfolk-${{ steps.version.outputs.version }}.vsix
           draft: false
           prerelease: false
+          generate_release_notes: true
