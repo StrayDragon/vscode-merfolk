@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { BaseService, ICommandProvider, IPreviewService, IFileService, ICodeLensService } from '../core/service';
+import { BaseService, ICommandProvider, IPreviewService, IFileService, ICodeLensService, IMarkdownService } from '../core/service';
 import { DIContainer } from '../core/container';
 
 /**
@@ -9,11 +9,13 @@ import { DIContainer } from '../core/container';
 export class CommandProvider extends BaseService implements ICommandProvider {
     private previewService: IPreviewService;
     private fileService: IFileService;
+    private markdownService: IMarkdownService;
 
     constructor(container: DIContainer) {
         super(container);
         this.previewService = container.resolve<IPreviewService>('PreviewService');
         this.fileService = container.resolve<IFileService>('FileService');
+        this.markdownService = container.resolve<IMarkdownService>('MarkdownService');
     }
 
     /**
@@ -48,12 +50,39 @@ export class CommandProvider extends BaseService implements ICommandProvider {
         this.registerCommand('mermaidChart.openFile', async (documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }) => {
             try {
                 const document = await this.fileService.openFile(linkInfo.filePath, documentUri);
-                await vscode.window.showTextDocument(document);
 
-                // If it's a markdown file with an ID, we could potentially navigate to the line
-                // but for now, just open the file
+                // For markdown files with ID, navigate to the specific line
                 if (linkInfo.id && this.fileService.isMarkdownFile(document)) {
-                    vscode.window.showInformationMessage(`Opened ${linkInfo.filePath}. ID "${linkInfo.id}" reference found.`);
+                    const line = await this.markdownService.getLineForId(document, linkInfo.id);
+
+                    if (line !== null && line >= 0) {
+                        // Show the document and navigate to the line
+                        const editor = await vscode.window.showTextDocument(document);
+
+                        // Convert line number to 0-based range
+                        const lineZeroBased = Math.max(0, line);
+                        const targetLine = document.lineAt(lineZeroBased);
+                        const range = new vscode.Range(lineZeroBased, 0, lineZeroBased, targetLine.text.length);
+
+                        // Reveal the line with some padding
+                        editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+
+                        // Select the line to highlight it
+                        editor.selection = new vscode.Selection(range.start, range.end);
+
+                        vscode.window.showInformationMessage(
+                            `Opened ${linkInfo.filePath} and navigated to ID "${linkInfo.id}"`
+                        );
+                    } else {
+                        // ID not found, just open the file
+                        await vscode.window.showTextDocument(document);
+                        vscode.window.showWarningMessage(
+                            `Opened ${linkInfo.filePath}, but ID "${linkInfo.id}" was not found`
+                        );
+                    }
+                } else {
+                    // Regular file or no ID, just open
+                    await vscode.window.showTextDocument(document);
                 }
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);

@@ -102,9 +102,22 @@ export interface IConfigService {
 export interface IMarkdownService {
     findMermaidById(document: vscode.TextDocument, id: string): Promise<string | null>;
     getAvailableIds(document: vscode.TextDocument): Promise<string[]>;
+    findMermaidByIdWithLine(document: vscode.TextDocument, id: string): Promise<{ content: string; line: number } | null>;
+    getLineForId(document: vscode.TextDocument, id: string): Promise<number | null>;
     clearCaches(): void;
     clearDocumentCache(uri: vscode.Uri): void;
     getCacheStats(): { documentCache: number };
+}
+
+/**
+ * Service interface for Syntax Highlighting operations
+ */
+export interface ISyntaxHighlightService {
+    refreshHighlighting(document: vscode.TextDocument): Promise<void>;
+    clearCache(): void;
+    getCacheStats(): { cacheSize: number; cacheHits: number; cacheMisses: number };
+    isEnabled(): boolean;
+    dispose(): void;
 }
 
 /**

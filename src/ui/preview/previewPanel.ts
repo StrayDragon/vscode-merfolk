@@ -7,7 +7,10 @@ export class PreviewPanel {
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private readonly _extensionUri: vscode.Uri;
-    private _document: vscode.TextDocument;
+    private _document?: vscode.TextDocument;
+    private _content?: string;
+    private _sourceInfo?: { filePath: string; id?: string };
+    private _isContentMode: boolean;
     private _updateTimeout: NodeJS.Timeout | undefined;
 
     public static createOrShow(document: vscode.TextDocument, extensionUri: vscode.Uri) {
@@ -20,6 +23,9 @@ export class PreviewPanel {
         if (PreviewPanel.currentPanel) {
             PreviewPanel.currentPanel._panel.reveal(targetColumn);
             PreviewPanel.currentPanel._document = document;
+            PreviewPanel.currentPanel._content = undefined;
+            PreviewPanel.currentPanel._sourceInfo = undefined;
+            PreviewPanel.currentPanel._isContentMode = false;
             PreviewPanel.currentPanel._update();
             return;
         }
@@ -41,6 +47,44 @@ export class PreviewPanel {
         PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, document);
     }
 
+    public static createOrShowWithContent(
+        content: string,
+        sourceInfo: { filePath: string; id?: string },
+        extensionUri: vscode.Uri
+    ) {
+        // Get user configuration for preview column
+        const config = vscode.workspace.getConfiguration('merfolk.preview');
+        const defaultColumnConfig = config.get<string>('defaultColumn', 'beside');
+        const targetColumn = getViewColumn(defaultColumnConfig);
+
+        // If we already have a panel, show it
+        if (PreviewPanel.currentPanel) {
+            PreviewPanel.currentPanel._panel.reveal(targetColumn);
+            PreviewPanel.currentPanel._content = content;
+            PreviewPanel.currentPanel._sourceInfo = sourceInfo;
+            PreviewPanel.currentPanel._document = undefined;
+            PreviewPanel.currentPanel._isContentMode = true;
+            PreviewPanel.currentPanel._update();
+            return;
+        }
+
+        // Otherwise, create a new panel
+        const panel = vscode.window.createWebviewPanel(
+            PreviewPanel.viewType,
+            'Mermaid Preview',
+            targetColumn,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [
+                    vscode.Uri.joinPath(extensionUri, 'assets')
+                ]
+            }
+        );
+
+        PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, undefined, content, sourceInfo);
+    }
+
     public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         // When a panel is restored, we need a document - for now create empty one
         const editor = vscode.window.activeTextEditor;
@@ -50,10 +94,19 @@ export class PreviewPanel {
         }
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, document: vscode.TextDocument) {
+    private constructor(
+        panel: vscode.WebviewPanel,
+        extensionUri: vscode.Uri,
+        document?: vscode.TextDocument,
+        content?: string,
+        sourceInfo?: { filePath: string; id?: string }
+    ) {
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._document = document;
+        this._content = content;
+        this._sourceInfo = sourceInfo;
+        this._isContentMode = !!content;
 
         // Set the webview's initial html content
         this._update();
@@ -61,8 +114,11 @@ export class PreviewPanel {
         // Listen for when the panel is disposed
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
 
-        // Listen for when the active editor changes
+        // Listen for when the active editor changes (only in document mode)
         vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (this._isContentMode) {
+                return; // Don't update in content mode
+            }
             if (editor && (editor.document.languageId === 'mermaid' || this.isMermaidFile(editor.document))) {
                 this._document = editor.document;
                 this._update();
@@ -91,8 +147,11 @@ export class PreviewPanel {
             this._disposables
         );
 
-        // Update on document changes with debouncing
+        // Update on document changes with debouncing (only in document mode)
         vscode.workspace.onDidChangeTextDocument(event => {
+            if (this._isContentMode) {
+                return; // Don't update in content mode
+            }
             const editor = vscode.window.activeTextEditor;
             if (editor && event.document === editor.document && event.document === this._document) {
                 // Debounce updates to avoid excessive rendering
@@ -133,22 +192,55 @@ export class PreviewPanel {
 
     private _update() {
         const webview = this._panel.webview;
-        this._panel.title = `Mermaid Preview: ${path.basename(this._document.fileName)}`;
+
+        // Set title based on mode
+        if (this._isContentMode && this._sourceInfo) {
+            this._panel.title = 'Mermaid Preview';
+        } else if (this._document) {
+            this._panel.title = `Mermaid Preview: ${path.basename(this._document.fileName)}`;
+        } else {
+            this._panel.title = 'Mermaid Preview';
+        }
+
         this._panel.webview.html = this._getHtmlForWebview(webview);
 
         // Send the current content to the webview
-        const content = this._document.getText();
+        let content: string;
+        let fileName: string;
+
+        if (this._isContentMode && this._content) {
+            content = this._content;
+            fileName = this._sourceInfo?.filePath || 'mermaid-chart';
+        } else if (this._document) {
+            content = this._document.getText();
+            fileName = this._document.fileName;
+        } else {
+            content = '';
+            fileName = 'unknown';
+        }
+
         this._panel.webview.postMessage({
             command: 'updateContent',
             content: content,
-            fileName: this._document.fileName
+            fileName: fileName
         });
     }
 
     private async _openMermaidChartFile(relativePath: string): Promise<void> {
         try {
             // Get the current file's directory
-            const currentFile = this._document.uri;
+            let currentFile: vscode.Uri;
+
+            if (this._isContentMode && this._sourceInfo) {
+                // In content mode, use the source file path
+                currentFile = vscode.Uri.file(this._sourceInfo.filePath);
+            } else if (this._document) {
+                currentFile = this._document.uri;
+            } else {
+                vscode.window.showErrorMessage('No source file available for resolving relative paths');
+                return;
+            }
+
             const currentDir = path.dirname(currentFile.fsPath);
 
             // Resolve the relative path (similar to markdown link resolution)

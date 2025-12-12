@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Mermaid in Markdown",
+  "scopeName": "source.mermaid.embedded.markdown",
+  "injectionSelector": "L:text.html.markdown",
+  "patterns": [
+    {
+      "include": "#mermaid-code-block"
+    }
+  ],
+  "repository": {
+    "mermaid-code-block": {
+      "begin": "(^|\\G)(\\s*)(```)(\\s*)(mermaid)(\\s*$)",
+      "beginCaptures": {
+        "3": {
+          "name": "punctuation.definition.markdown"
+        },
+        "5": {
+          "name": "fenced_code.block.language.markdown",
+          "patterns": [
+            {
+              "include": "#mermaid-dialect"
+            }
+          ]
+        }
+      },
+      "end": "(^|\\G)(\\2)(```)",
+      "endCaptures": {
+        "3": {
+          "name": "punctuation.definition.markdown"
+        }
+      },
+      "name": "markup.fenced_code.block.markdown",
+      "contentName": "meta.embedded.block.mermaid",
+      "patterns": [
+        {
+          "include": "source.mermaid#comments"
+        },
+        {
+          "include": "source.mermaid#keywords"
+        },
+        {
+          "include": "source.mermaid#strings"
+        },
+        {
+          "include": "source.mermaid#identifiers"
+        },
+        {
+          "include": "source.mermaid#arrows"
+        },
+        {
+          "include": "source.mermaid#nodes"
+        }
+      ]
+    },
+    "mermaid-dialect": {
+      "match": "\\b(flowchart|graph|sequenceDiagram|seq|classDiagram|class|stateDiagram|state|stateDiagram-v2|erDiagram|er|journey|gantt|pie|pieChart|gitgraph|C4Context|block|architecture|architecture-beta|mindmap|timeline|zenuml|sankey|quadrantChart|requirementDiagram|c|c4|packet|betty|block-beta|excalidraw|graph TD|graph LR|graph TB|graph BT|graph RL)\\b",
+      "name": "constant.language.mermaid.dialect"
+    }
+  }
+}
