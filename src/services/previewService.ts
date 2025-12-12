@@ -86,19 +86,12 @@ export class PreviewService extends BaseService implements IPreviewService {
                 throw new Error(`No Mermaid content found for ${identifier}`);
             }
 
-            // Create a temporary document with the extracted content
-            const tempUri = vscode.Uri.parse(
-                `mermaid-preview:${encodeURIComponent(filePath)}${id ? `@${id}` : ''}.mmd`
+            // Show preview panel directly with content
+            PreviewPanel.createOrShowWithContent(
+                mermaidContent,
+                { filePath, id },
+                this.context.extensionUri
             );
-
-            // Create a temporary document in memory
-            const tempDocument = await vscode.workspace.openTextDocument({
-                content: mermaidContent,
-                language: 'mermaid'
-            });
-
-            // Show preview panel
-            this.createOrShow(tempDocument);
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
