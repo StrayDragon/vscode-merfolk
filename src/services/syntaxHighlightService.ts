@@ -43,11 +43,11 @@ export class SyntaxHighlightService extends BaseService implements ISyntaxHighli
 
     constructor(container: DIContainer) {
         super(container);
-        this.configService = container.resolve<IConfigService>('IConfigService');
+        this.configService = container.resolve<IConfigService>('ConfigService');
 
         // Load configuration
-        this.maxCacheSize = this.configService.get('merfolk.syntaxHighlight.cacheSize', 50);
-        this.debounceDelay = this.configService.get('merfolk.syntaxHighlight.debounceDelay', 300);
+        this.maxCacheSize = this.configService.get('syntaxHighlight.cacheSize', 50);
+        this.debounceDelay = this.configService.get('syntaxHighlight.debounceDelay', 300);
 
         // Register event listeners
         this.registerEventListeners();
@@ -57,7 +57,7 @@ export class SyntaxHighlightService extends BaseService implements ISyntaxHighli
      * Check if syntax highlighting is enabled
      */
     public isEnabled(): boolean {
-        return this.configService.get('merfolk.syntaxHighlight.enabled', true);
+        return this.configService.get('syntaxHighlight.enabled', true);
     }
 
     /**
@@ -125,7 +125,7 @@ export class SyntaxHighlightService extends BaseService implements ISyntaxHighli
 
         // Quick check for mermaid content
         const text = document.getText();
-        return text.includes('```mermaid') || text.includes('```mermaid') || text.includes('```mmd');
+        return text.includes('```mermaid') || text.includes('```mmd');
     }
 
     /**
@@ -250,8 +250,8 @@ export class SyntaxHighlightService extends BaseService implements ISyntaxHighli
             this.clearCache();
 
             // Update settings
-            const newSize = this.configService.get('merfolk.syntaxHighlight.cacheSize', 50);
-            const newDelay = this.configService.get('merfolk.syntaxHighlight.debounceDelay', 300);
+            const newSize = this.configService.get('syntaxHighlight.cacheSize', 50);
+            const newDelay = this.configService.get('syntaxHighlight.debounceDelay', 300);
 
             // Note: We don't update the private fields as they're set in constructor
             // In a real implementation, you might want to make these reactive

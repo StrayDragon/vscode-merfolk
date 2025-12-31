@@ -29,6 +29,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Register all services
     registerServices(container);
 
+    container.resolve<SyntaxHighlightService>('SyntaxHighlightService');
+
     // Register all providers
     registerProviders(container);
 

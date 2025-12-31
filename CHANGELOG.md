@@ -4,6 +4,17 @@ All notable changes to the "vscode-merfolk" extension will be documented in this
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.6] - 2025-XX-XX
+
+### Fixed
+- 修复 MermaidChart 相对路径解析在工作区根目录/多根工作区下可能失效的问题
+- 修复语法高亮服务注入与配置读取导致的无效问题
+- 预览列 “beside” 现在相对当前活动编辑器
+
+### Improved
+- 预览面板恢复逻辑改为使用 Webview state
+- Webview CSP 收紧并新增 `merfolk.preview.securityLevel` 配置（不可信工作区强制 strict）
+
 ## [0.0.5] - 2025-01-XX
 
 ### 🚨 Breaking Changes

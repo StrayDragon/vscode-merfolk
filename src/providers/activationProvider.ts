@@ -30,7 +30,7 @@ export class ActivationProvider extends BaseService implements IActivationProvid
                     // Get PreviewService and revive the panel
                     const previewService = container.resolve<IPreviewService>('PreviewService');
                     if (previewService) {
-                        previewService.revive(webviewPanel);
+                        await previewService.revive(webviewPanel, state);
                     }
                 }
             });

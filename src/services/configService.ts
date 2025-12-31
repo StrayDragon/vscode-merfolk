@@ -14,10 +14,10 @@ export class ConfigService extends BaseService implements IConfigService {
     /**
      * Get preview column configuration
      */
-    public getPreviewColumn(): vscode.ViewColumn {
+    public getPreviewColumn(activeEditor?: vscode.TextEditor): vscode.ViewColumn {
         const config = vscode.workspace.getConfiguration('merfolk.preview');
         const defaultColumnConfig = config.get<string>('defaultColumn', 'beside');
-        return getViewColumn(defaultColumnConfig);
+        return getViewColumn(defaultColumnConfig, activeEditor);
     }
 
     

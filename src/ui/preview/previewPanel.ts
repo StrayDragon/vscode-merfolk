@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { getViewColumn } from '../../shared/utils/viewColumn';
+import type { PreviewWebviewState } from '../../core/service';
 
 export class PreviewPanel {
     public static currentPanel: PreviewPanel | undefined;
@@ -13,11 +14,12 @@ export class PreviewPanel {
     private _isContentMode: boolean;
     private _updateTimeout: NodeJS.Timeout | undefined;
 
-    public static createOrShow(document: vscode.TextDocument, extensionUri: vscode.Uri) {
-        // Get user configuration for preview column
-        const config = vscode.workspace.getConfiguration('merfolk.preview');
-        const defaultColumnConfig = config.get<string>('defaultColumn', 'beside');
-        const targetColumn = getViewColumn(defaultColumnConfig);
+    public static createOrShow(
+        document: vscode.TextDocument,
+        extensionUri: vscode.Uri,
+        viewColumn?: vscode.ViewColumn
+    ) {
+        const targetColumn = viewColumn ?? PreviewPanel.getTargetColumn();
 
         // If we already have a panel, show it
         if (PreviewPanel.currentPanel) {
@@ -50,12 +52,10 @@ export class PreviewPanel {
     public static createOrShowWithContent(
         content: string,
         sourceInfo: { filePath: string; id?: string },
-        extensionUri: vscode.Uri
+        extensionUri: vscode.Uri,
+        viewColumn?: vscode.ViewColumn
     ) {
-        // Get user configuration for preview column
-        const config = vscode.workspace.getConfiguration('merfolk.preview');
-        const defaultColumnConfig = config.get<string>('defaultColumn', 'beside');
-        const targetColumn = getViewColumn(defaultColumnConfig);
+        const targetColumn = viewColumn ?? PreviewPanel.getTargetColumn();
 
         // If we already have a panel, show it
         if (PreviewPanel.currentPanel) {
@@ -85,13 +85,20 @@ export class PreviewPanel {
         PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, undefined, content, sourceInfo);
     }
 
-    public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
-        // When a panel is restored, we need a document - for now create empty one
-        const editor = vscode.window.activeTextEditor;
-        const document = editor ? editor.document : undefined;
-        if (document) {
-            PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, document);
-        }
+    public static revive(
+        panel: vscode.WebviewPanel,
+        extensionUri: vscode.Uri,
+        document?: vscode.TextDocument,
+        content?: string,
+        sourceInfo?: { filePath: string; id?: string }
+    ) {
+        PreviewPanel.currentPanel = new PreviewPanel(panel, extensionUri, document, content, sourceInfo);
+    }
+
+    private static getTargetColumn(): vscode.ViewColumn {
+        const config = vscode.workspace.getConfiguration('merfolk.preview');
+        const defaultColumnConfig = config.get<string>('defaultColumn', 'beside');
+        return getViewColumn(defaultColumnConfig, vscode.window.activeTextEditor);
     }
 
     private constructor(
@@ -222,8 +229,27 @@ export class PreviewPanel {
         this._panel.webview.postMessage({
             command: 'updateContent',
             content: content,
-            fileName: fileName
+            fileName: fileName,
+            state: this.getWebviewState()
         });
+    }
+
+    private getWebviewState(): PreviewWebviewState | undefined {
+        if (this._isContentMode && this._sourceInfo) {
+            return {
+                mode: 'content',
+                sourceInfo: this._sourceInfo
+            };
+        }
+
+        if (this._document) {
+            return {
+                mode: 'document',
+                documentUri: this._document.uri.toString()
+            };
+        }
+
+        return undefined;
     }
 
     private async _openMermaidChartFile(relativePath: string): Promise<void> {
@@ -278,15 +304,17 @@ export class PreviewPanel {
         // Use local Mermaid.js file
         const mermaidPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'assets', 'mermaid.min.js');
         const mermaidUri = webview.asWebviewUri(mermaidPathOnDisk);
+        const nonce = this.getNonce();
+        const securityLevel = this.getSecurityLevel();
 
         return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src blob: data:; connect-src blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob: data:; style-src 'nonce-${nonce}' ${webview.cspSource}; script-src 'nonce-${nonce}' ${webview.cspSource}; connect-src blob:;">
     <title>Mermaid Preview</title>
-    <style>
+    <style nonce="${nonce}">
         body {
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
@@ -334,6 +362,7 @@ export class PreviewPanel {
             margin: 10px 0;
             white-space: pre-wrap;
             font-family: var(--vscode-font-family);
+            display: none;
         }
         .toolbar {
             display: flex;
@@ -367,20 +396,20 @@ export class PreviewPanel {
 </head>
 <body>
     <div class="toolbar">
-        <button onclick="zoomIn()">Zoom In</button>
-        <button onclick="zoomOut()">Zoom Out</button>
-        <button onclick="resetZoom()">Reset</button>
-        <button onclick="fitToScreen()">Fit to Screen</button>
-        <button onclick="exportSvg()">Export SVG</button>
+        <button id="zoom-in">Zoom In</button>
+        <button id="zoom-out">Zoom Out</button>
+        <button id="reset-zoom">Reset</button>
+        <button id="fit-to-screen">Fit to Screen</button>
+        <button id="export-svg">Export SVG</button>
     </div>
     <div id="container">
         <div id="mermaid-diagram"></div>
-        <div id="error" style="display: none;"></div>
+        <div id="error"></div>
     </div>
 
     <!-- Using local Mermaid.js -->
-    <script src="${mermaidUri}"></script>
-    <script>
+    <script nonce="${nonce}" src="${mermaidUri}"></script>
+    <script nonce="${nonce}">
         // Initialize Mermaid
         mermaid.initialize({
             startOnLoad: false,
@@ -395,7 +424,7 @@ export class PreviewPanel {
             },
             fontFamily: 'var(--vscode-font-family)',
             fontSize: 16,
-            securityLevel: 'loose'
+            securityLevel: ${JSON.stringify(securityLevel)}
         });
 
         const vscode = acquireVsCodeApi();
@@ -623,12 +652,21 @@ export class PreviewPanel {
             return baseName + '.' + extension;
         }
 
+        document.getElementById('zoom-in')?.addEventListener('click', zoomIn);
+        document.getElementById('zoom-out')?.addEventListener('click', zoomOut);
+        document.getElementById('reset-zoom')?.addEventListener('click', resetZoom);
+        document.getElementById('fit-to-screen')?.addEventListener('click', fitToScreen);
+        document.getElementById('export-svg')?.addEventListener('click', exportSvg);
+
         // Listen for messages from the extension
         window.addEventListener('message', async event => {
             const message = event.data;
             switch (message.command) {
                 case 'updateContent':
                     currentContent = message.content;
+                    if (message.state) {
+                        vscode.setState(message.state);
+                    }
                     await renderMermaid(currentContent);
                     break;
                 case 'requestExport':
@@ -693,6 +731,23 @@ export class PreviewPanel {
         } catch (error) {
             vscode.window.showErrorMessage(`Failed to save file: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    private getNonce(): string {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+
+    private getSecurityLevel(): string {
+        const config = vscode.workspace.getConfiguration('merfolk.preview');
+        const configuredLevel = config.get<string>('securityLevel', 'strict');
+        const allowedLevels = ['strict', 'loose', 'antiscript', 'sandbox'];
+        const normalizedLevel = allowedLevels.includes(configuredLevel) ? configuredLevel : 'strict';
+        return vscode.workspace.isTrusted ? normalizedLevel : 'strict';
     }
 
     public static readonly viewType = 'mermaid.preview';

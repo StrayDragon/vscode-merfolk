@@ -16,50 +16,57 @@ export class FileService extends BaseService implements IFileService {
      * Resolve a relative path to an absolute URI based on a base URI
      * Priority: absolute path > relative to current file's directory > relative to workspace root
      */
-    public resolvePath(relativePath: string, baseUri: vscode.Uri): vscode.Uri {
+    public async resolvePath(relativePath: string, baseUri: vscode.Uri): Promise<vscode.Uri> {
         // If it's already an absolute path, return it directly
         if (path.isAbsolute(relativePath)) {
             return vscode.Uri.file(relativePath);
         }
+
+        const candidates: vscode.Uri[] = [];
 
         // Get the directory of the current file
         const currentFileDir = path.dirname(baseUri.fsPath);
 
         // First, try to resolve relative to the current file's directory
         const relativeToFile = path.resolve(currentFileDir, relativePath);
-
-        // Check if the file exists relative to the current file
-        try {
-            vscode.workspace.fs.stat(vscode.Uri.file(relativeToFile));
-            return vscode.Uri.file(relativeToFile);
-        } catch (e) {
-            // File not found, try workspace root
-        }
+        candidates.push(vscode.Uri.file(relativeToFile));
 
         // If not found, try to resolve relative to workspace root
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (workspaceFolders && workspaceFolders.length > 0) {
-            const workspaceRoot = workspaceFolders[0].uri.fsPath;
-            const relativeToWorkspace = path.resolve(workspaceRoot, relativePath);
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(baseUri);
+        if (workspaceFolder) {
+            const relativeToWorkspace = path.resolve(workspaceFolder.uri.fsPath, relativePath);
+            const workspaceUri = vscode.Uri.file(relativeToWorkspace);
+            if (!candidates.some(candidate => candidate.fsPath === workspaceUri.fsPath)) {
+                candidates.push(workspaceUri);
+            }
+        } else {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (workspaceFolders && workspaceFolders.length > 0) {
+                for (const folder of workspaceFolders) {
+                    const relativeToWorkspace = path.resolve(folder.uri.fsPath, relativePath);
+                    const workspaceUri = vscode.Uri.file(relativeToWorkspace);
+                    if (!candidates.some(candidate => candidate.fsPath === workspaceUri.fsPath)) {
+                        candidates.push(workspaceUri);
+                    }
+                }
+            }
+        }
 
-            // Check if the file exists relative to workspace root
-            try {
-                vscode.workspace.fs.stat(vscode.Uri.file(relativeToWorkspace));
-                return vscode.Uri.file(relativeToWorkspace);
-            } catch (e) {
-                // File not found, return relative path
+        for (const candidate of candidates) {
+            if (await this.pathExists(candidate)) {
+                return candidate;
             }
         }
 
         // Return the path relative to current file (may not exist)
-        return vscode.Uri.file(relativeToFile);
+        return candidates[0];
     }
 
     /**
      * Open a file given a relative path and base URI
      */
     public async openFile(relativePath: string, baseUri: vscode.Uri): Promise<vscode.TextDocument> {
-        const targetUri = this.resolvePath(relativePath, baseUri);
+        const targetUri = await this.resolvePath(relativePath, baseUri);
 
         // Check if the file exists
         try {
@@ -71,6 +78,15 @@ export class FileService extends BaseService implements IFileService {
         // Open the file
         const document = await vscode.workspace.openTextDocument(targetUri);
         return document;
+    }
+
+    private async pathExists(uri: vscode.Uri): Promise<boolean> {
+        try {
+            await vscode.workspace.fs.stat(uri);
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     /**

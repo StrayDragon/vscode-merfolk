@@ -61,9 +61,18 @@ export abstract class BaseService {
  */
 export interface IPreviewService {
     createOrShow(document: vscode.TextDocument): void;
-    revive(panel: vscode.WebviewPanel): void;
+    revive(panel: vscode.WebviewPanel, state?: PreviewWebviewState): Promise<void>;
     previewMermaidById(documentUri: vscode.Uri, filePath: string, id?: string): Promise<void>;
     dispose(): void;
+}
+
+/**
+ * Webview state used for preview panel restoration
+ */
+export interface PreviewWebviewState {
+    mode: 'document' | 'content';
+    documentUri?: string;
+    sourceInfo?: { filePath: string; id?: string };
 }
 
 
@@ -82,7 +91,7 @@ export interface ICodeLensService {
  */
 export interface IFileService {
     openFile(relativePath: string, baseUri: vscode.Uri): Promise<vscode.TextDocument>;
-    resolvePath(relativePath: string, baseUri: vscode.Uri): vscode.Uri;
+    resolvePath(relativePath: string, baseUri: vscode.Uri): Promise<vscode.Uri>;
     isMermaidFile(document: vscode.TextDocument): boolean;
     isMarkdownFile(document: vscode.TextDocument): boolean;
     getDocumentHash(document: vscode.TextDocument): string;
@@ -92,7 +101,7 @@ export interface IFileService {
  * Service interface for Configuration management
  */
 export interface IConfigService {
-    getPreviewColumn(): vscode.ViewColumn;
+    getPreviewColumn(activeEditor?: vscode.TextEditor): vscode.ViewColumn;
     get<T>(key: string, defaultValue: T): T;
 }
 
