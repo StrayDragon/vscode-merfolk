@@ -284,25 +284,24 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
     }
 
     private async getStandaloneResources(): Promise<StandaloneResources> {
-        const standalonePath = this.configService.get<string>('editor.standalonePath', '');
-
-        if (!standalonePath) {
-            throw new Error('请在设置中配置 merfolk.editor.standalonePath，仓库：https://github.com/StrayDragon/merfolk-editor (构建后使用 dist/standalone)');
+        // 1) 优先使用扩展内 node_modules/merfolk-editor/dist/standalone
+        const bundled = await this.tryResolveStandalone(
+            path.join(this.context.extensionPath, 'node_modules', 'merfolk-editor', 'dist', 'standalone')
+        );
+        if (bundled) {
+            return bundled;
         }
 
-        const jsPath = path.join(standalonePath, 'merfolk-editor.iife.js');
-        const cssPath = path.join(standalonePath, 'merfolk-editor.css');
+        // 2) 使用用户配置路径
+        const standalonePath = this.configService.get<string>('editor.standalonePath', '');
+        if (standalonePath) {
+            const resolved = await this.tryResolveStandalone(standalonePath);
+            if (resolved) {
+                return resolved;
+            }
+        }
 
-        await vscode.workspace.fs.stat(vscode.Uri.file(jsPath));
-        await vscode.workspace.fs.stat(vscode.Uri.file(cssPath));
-
-        const root = vscode.Uri.file(standalonePath);
-
-        return {
-            jsUri: vscode.Uri.file(jsPath),
-            cssUri: vscode.Uri.file(cssPath),
-            root
-        };
+        throw new Error('未找到 merfolk-editor 资源。请安装依赖（pnpm add merfolk-editor@github:StrayDragon/merfolk-editor#v0.1.0）或设置 merfolk.editor.standalonePath 指向 dist/standalone。');
     }
 
     private getHtml(webview: vscode.Webview, resources: StandaloneResources, source: EditorSource): string {
@@ -446,5 +445,25 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
             return vscode.Uri.joinPath(workspace.uri, 'diagram.mmd');
         }
         return undefined;
+    }
+
+    private async tryResolveStandalone(rootPath: string): Promise<StandaloneResources | null> {
+        const jsPath = path.join(rootPath, 'merfolk-editor.iife.js');
+        const cssPath = path.join(rootPath, 'merfolk-editor.css');
+
+        const jsUri = vscode.Uri.file(jsPath);
+        const cssUri = vscode.Uri.file(cssPath);
+
+        try {
+            await vscode.workspace.fs.stat(jsUri);
+            await vscode.workspace.fs.stat(cssUri);
+            return {
+                jsUri,
+                cssUri,
+                root: vscode.Uri.file(rootPath)
+            };
+        } catch {
+            return null;
+        }
     }
 }

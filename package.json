@@ -82,7 +82,7 @@
         "merfolk.editor.standalonePath": {
           "type": "string",
           "default": "",
-          "description": "Merfolk Editor 本地构建目录，需包含 merfolk-editor.iife.js 与 merfolk-editor.css，可从 https://github.com/StrayDragon/merfolk-editor 克隆后使用 dist/standalone"
+          "description": "Merfolk Editor 本地构建目录，需包含 merfolk-editor.iife.js 与 merfolk-editor.css；默认会尝试 node_modules/merfolk-editor/dist/standalone，若未安装可从 https://github.com/StrayDragon/merfolk-editor 克隆后使用 dist/standalone"
         }
       }
     },
@@ -188,6 +188,9 @@
     "package": "pnpm run check-types && pnpm run lint && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src"
+  },
+  "dependencies": {
+    "merfolk-editor": "github:StrayDragon/merfolk-editor#v0.1.0"
   },
   "devDependencies": {
     "@types/node": "22.x",
