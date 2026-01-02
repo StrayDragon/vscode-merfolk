@@ -59,25 +59,16 @@ async function main() {
     const pkgRoot = resolveMerfolkEditor();
     if (pkgRoot) {
         const standaloneDir = path.join(pkgRoot, 'dist', 'standalone');
-        if (!fs.existsSync(standaloneDir)) {
-            log('未检测到 dist/standalone，尝试执行 build:standalone（依赖包自带时可忽略）...');
-            const result = spawnSync('pnpm', ['run', 'build:standalone', '--dir', pkgRoot], {
-                stdio: 'inherit',
-                env: process.env
-            });
-            if (result.status !== 0) {
-                log('构建失败或脚本不可用，继续后续流程');
-            }
-        }
         if (fs.existsSync(standaloneDir)) {
             log('检测到 node_modules/merfolk-editor/dist/standalone，开始复制...');
             copyDir(standaloneDir, target);
             log(`已复制到 ${target}`);
             return;
         }
+        log('未找到 dist/standalone，请使用内置产物的 merfolk-editor 版本（发布时应自带 dist/standalone）。');
     }
 
-    throw new Error('未找到 merfolk-editor standalone。请安装 devDependency 并确保包内包含 dist/standalone（如必要可运行 pnpm -C node_modules/merfolk-editor run build:standalone）。');
+    throw new Error('未找到 merfolk-editor standalone。请安装包含 dist/standalone 的 merfolk-editor 版本，或手动提供 assets/merfolk-editor。');
 }
 
 main().catch(err => {

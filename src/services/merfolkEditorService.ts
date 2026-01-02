@@ -300,7 +300,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
             return bundled;
         }
 
-        throw new Error('未找到 merfolk-editor 资源。请确保打包前执行 pnpm run prepare:merfolk（需要 node_modules/merfolk-editor/dist/standalone），或升级依赖版本以包含 dist/standalone。');
+        throw new Error('未找到 merfolk-editor 资源。请确保依赖包内置 dist/standalone 并在打包前执行 pnpm run prepare:merfolk。');
     }
 
     private getHtml(webview: vscode.Webview, resources: StandaloneResources, source: EditorSource): string {
