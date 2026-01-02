@@ -8,6 +8,7 @@ import { FileService } from './services/fileService';
 import { ConfigService } from './services/configService';
 import { MarkdownService } from './services/markdownService';
 import { SyntaxHighlightService } from './services/syntaxHighlightService';
+import { MerfolkEditorService } from './services/merfolkEditorService';
 
 /**
  * Refactored extension entry point using IoC container
@@ -48,6 +49,7 @@ function registerServices(container: DIContainer): void {
     container.registerSingleton('ConfigService', (c) => new ConfigService(c));
     container.registerSingleton('MarkdownService', (c) => new MarkdownService(c));
     container.registerSingleton('SyntaxHighlightService', (c) => new SyntaxHighlightService(c));
+    container.registerSingleton('MerfolkEditorService', (c) => new MerfolkEditorService(c));
 
     // Feature services
     container.registerSingleton('PreviewService', (c) => new PreviewService(c));

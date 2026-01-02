@@ -121,6 +121,16 @@ export interface ISyntaxHighlightService {
 }
 
 /**
+ * Service interface for Merfolk Editor webview
+ */
+export interface IMerfolkEditorService {
+    openDocument(document: vscode.TextDocument): Promise<void>;
+    openLink(documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }): Promise<void>;
+    createAndOpen(): Promise<void>;
+    dispose(): void;
+}
+
+/**
  * Parsed MermaidChart link information
  */
 export interface MermaidChartLink {
@@ -241,6 +251,12 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
             codeLenses.push(new vscode.CodeLens(range, {
                 title: "Open",
                 command: "mermaidChart.openFile",
+                arguments: [document.uri, { filePath, id }]
+            }));
+
+            codeLenses.push(new vscode.CodeLens(range, {
+                title: "Edit",
+                command: "merfolkEditor.open",
                 arguments: [document.uri, { filePath, id }]
             }));
         }

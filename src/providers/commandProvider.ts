@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import { BaseService, ICommandProvider, IPreviewService, IFileService, ICodeLensService, IMarkdownService } from '../core/service';
+import { BaseService, ICommandProvider, IPreviewService, IFileService, ICodeLensService, IMarkdownService, IMerfolkEditorService } from '../core/service';
 import { DIContainer } from '../core/container';
 
 /**
@@ -10,12 +9,14 @@ export class CommandProvider extends BaseService implements ICommandProvider {
     private previewService: IPreviewService;
     private fileService: IFileService;
     private markdownService: IMarkdownService;
+    private merfolkEditorService: IMerfolkEditorService;
 
     constructor(container: DIContainer) {
         super(container);
         this.previewService = container.resolve<IPreviewService>('PreviewService');
         this.fileService = container.resolve<IFileService>('FileService');
         this.markdownService = container.resolve<IMarkdownService>('MarkdownService');
+        this.merfolkEditorService = container.resolve<IMerfolkEditorService>('MerfolkEditorService');
     }
 
     /**
@@ -87,6 +88,50 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 vscode.window.showErrorMessage(`Failed to open file: ${errorMessage}`);
+            }
+        });
+
+        // 使用 Merfolk Editor 打开当前文件或 MermaidChart 链接
+        this.registerCommand('merfolkEditor.open', async (documentUri?: vscode.Uri, linkInfo?: { filePath: string; id?: string }) => {
+            try {
+                if (linkInfo) {
+                    const baseUri = documentUri ?? vscode.window.activeTextEditor?.document.uri;
+                    if (!baseUri) {
+                        vscode.window.showErrorMessage('未找到用于解析路径的基准文件');
+                        return;
+                    }
+                    await this.merfolkEditorService.openLink(baseUri, linkInfo);
+                    return;
+                }
+
+                const editor = vscode.window.activeTextEditor;
+                if (editor && this.isMermaidFile(editor.document)) {
+                    await this.merfolkEditorService.openDocument(editor.document);
+                    return;
+                }
+
+                if (documentUri) {
+                    const doc = await vscode.workspace.openTextDocument(documentUri);
+                    if (this.isMermaidFile(doc)) {
+                        await this.merfolkEditorService.openDocument(doc);
+                        return;
+                    }
+                }
+
+                vscode.window.showErrorMessage('请先打开一个 Mermaid 文件 (.mmd / .mermaid) 再执行该命令');
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`无法打开 Merfolk Editor: ${message}`);
+            }
+        });
+
+        // 创建新文件并直接在 Merfolk Editor 中编辑
+        this.registerCommand('merfolkEditor.create', async () => {
+            try {
+                await this.merfolkEditorService.createAndOpen();
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`创建文件失败: ${message}`);
             }
         });
 

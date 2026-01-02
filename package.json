@@ -18,6 +18,8 @@
   "icon": "icon.png",
   "activationEvents": [
     "onCommand:mermaid.preview",
+    "onCommand:merfolkEditor.open",
+    "onCommand:merfolkEditor.create",
     "onLanguage:mermaid",
     "onLanguage:markdown",
     "onLanguage:typescript",
@@ -76,6 +78,11 @@
           "minimum": 100,
           "maximum": 1000,
           "description": "Debounce delay for syntax highlighting updates in milliseconds"
+        },
+        "merfolk.editor.standalonePath": {
+          "type": "string",
+          "default": "/Users/straydragon/Lair/Incubator/merfolk-editor/dist/standalone",
+          "description": "Merfolk Editor 本地构建目录，需包含 merfolk-editor.iife.js 与 merfolk-editor.css"
         }
       }
     },
@@ -96,6 +103,16 @@
       {
         "command": "mermaidChart.refreshCodeLens",
         "title": "Mermaid: Refresh CodeLens"
+      },
+      {
+        "command": "merfolkEditor.open",
+        "title": "Mermaid: 使用 Merfolk Editor 打开",
+        "category": "Merfolk"
+      },
+      {
+        "command": "merfolkEditor.create",
+        "title": "Mermaid: 新建并在 Merfolk Editor 中编辑",
+        "category": "Merfolk"
       }
     ],
     "languages": [
@@ -132,12 +149,24 @@
           "command": "mermaid.preview",
           "when": "resourceLangId == mermaid",
           "group": "navigation"
+        },
+        {
+          "command": "merfolkEditor.open",
+          "when": "resourceLangId == mermaid",
+          "group": "navigation@1"
         }
       ],
       "commandPalette": [
         {
           "command": "mermaid.preview",
           "when": "resourceLangId == mermaid"
+        },
+        {
+          "command": "merfolkEditor.open",
+          "when": "resourceLangId == mermaid"
+        },
+        {
+          "command": "merfolkEditor.create"
         }
       ]
     },
