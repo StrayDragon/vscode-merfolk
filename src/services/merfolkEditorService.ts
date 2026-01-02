@@ -287,7 +287,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
         const standalonePath = this.configService.get<string>('editor.standalonePath', '');
 
         if (!standalonePath) {
-            throw new Error('请在设置中配置 merfolk.editor.standalonePath');
+            throw new Error('请在设置中配置 merfolk.editor.standalonePath，仓库：https://github.com/StrayDragon/merfolk-editor (构建后使用 dist/standalone)');
         }
 
         const jsPath = path.join(standalonePath, 'merfolk-editor.iife.js');

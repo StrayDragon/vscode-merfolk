@@ -81,8 +81,8 @@
         },
         "merfolk.editor.standalonePath": {
           "type": "string",
-          "default": "/Users/straydragon/Lair/Incubator/merfolk-editor/dist/standalone",
-          "description": "Merfolk Editor 本地构建目录，需包含 merfolk-editor.iife.js 与 merfolk-editor.css"
+          "default": "",
+          "description": "Merfolk Editor 本地构建目录，需包含 merfolk-editor.iife.js 与 merfolk-editor.css，可从 https://github.com/StrayDragon/merfolk-editor 克隆后使用 dist/standalone"
         }
       }
     },
