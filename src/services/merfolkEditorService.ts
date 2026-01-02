@@ -284,7 +284,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
     }
 
     private async getStandaloneResources(): Promise<StandaloneResources> {
-        // 1) 优先使用扩展内 node_modules/merfolk-editor/dist/standalone
+        // 1) 优先使用扩展内 node_modules/merfolk-editor/dist/standalone（可选依赖，需构建后才有该目录）
         const bundled = await this.tryResolveStandalone(
             path.join(this.context.extensionPath, 'node_modules', 'merfolk-editor', 'dist', 'standalone')
         );
