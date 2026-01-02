@@ -28,6 +28,19 @@ package-vsix:
     set -e
     echo "📦 Packaging vscode-merfolk extension as VSIX..."
 
+    # Build merfolk-editor standalone (dev dependency) if present
+    if [ -d "node_modules/merfolk-editor" ]; then
+        if [ ! -d "node_modules/merfolk-editor/dist/standalone" ]; then
+            echo "🛠  构建 merfolk-editor standalone..."
+            pnpm install --dir node_modules/merfolk-editor --ignore-scripts=false
+            pnpm run build:standalone --dir node_modules/merfolk-editor
+        else
+            echo "✅ 已检测到 merfolk-editor/dist/standalone，跳过构建"
+        fi
+    else
+        echo "ℹ️ 未安装 merfolk-editor（devDependency），跳过内置构建"
+    fi
+
     # Package the extension with a consistent name (no version in filename)
     echo "📦 Creating VSIX package..."
     npx vsce package --out vscode-merfolk.vsix
