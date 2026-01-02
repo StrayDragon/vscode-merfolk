@@ -284,7 +284,15 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
     }
 
     private async getStandaloneResources(): Promise<StandaloneResources> {
-        // 1) 优先使用扩展内 node_modules/merfolk-editor/dist/standalone（devDependency，需构建后才有该目录）
+        // 1) 尝试扩展内置资源（打包时复制到 assets/merfolk-editor）
+        const embedded = await this.tryResolveStandalone(
+            vscode.Uri.joinPath(this.context.extensionUri, 'assets', 'merfolk-editor').fsPath
+        );
+        if (embedded) {
+            return embedded;
+        }
+
+        // 2) 本地开发环境 node_modules/merfolk-editor/dist/standalone（devDependency，需构建后才有该目录）
         const bundled = await this.tryResolveStandalone(
             path.join(this.context.extensionPath, 'node_modules', 'merfolk-editor', 'dist', 'standalone')
         );
@@ -292,7 +300,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
             return bundled;
         }
 
-        // 2) 使用用户配置路径
+        // 3) 使用用户配置路径
         const standalonePath = this.configService.get<string>('editor.standalonePath', '');
         if (standalonePath) {
             const resolved = await this.tryResolveStandalone(standalonePath);
@@ -301,7 +309,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
             }
         }
 
-        throw new Error('未找到 merfolk-editor 资源。请安装 devDependency（pnpm add -D merfolk-editor@github:StrayDragon/merfolk-editor#main 并构建 standalone），或设置 merfolk.editor.standalonePath 指向 dist/standalone。');
+        throw new Error('未找到 merfolk-editor 资源。请安装并构建 devDependency（pnpm add -D merfolk-editor@github:StrayDragon/merfolk-editor#main && pnpm --dir node_modules/merfolk-editor run build:standalone），或设置 merfolk.editor.standalonePath 指向 dist/standalone。');
     }
 
     private getHtml(webview: vscode.Webview, resources: StandaloneResources, source: EditorSource): string {

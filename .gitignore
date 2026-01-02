@@ -5,3 +5,4 @@ node_modules
 *.vsix
 docs/source_ref/*
 docs/sources_ref
+assets/merfolk-editor
