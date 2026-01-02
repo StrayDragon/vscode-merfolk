@@ -300,16 +300,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
             return bundled;
         }
 
-        // 3) 使用用户配置路径
-        const standalonePath = this.configService.get<string>('editor.standalonePath', '');
-        if (standalonePath) {
-            const resolved = await this.tryResolveStandalone(standalonePath);
-            if (resolved) {
-                return resolved;
-            }
-        }
-
-        throw new Error('未找到 merfolk-editor 资源。请安装并构建 devDependency（pnpm add -D merfolk-editor@github:StrayDragon/merfolk-editor#main && pnpm --dir node_modules/merfolk-editor run build:standalone），或设置 merfolk.editor.standalonePath 指向 dist/standalone。');
+        throw new Error('未找到 merfolk-editor 资源。请确保打包前执行 pnpm run prepare:merfolk（需要 node_modules/merfolk-editor/dist/standalone），或升级依赖版本以包含 dist/standalone。');
     }
 
     private getHtml(webview: vscode.Webview, resources: StandaloneResources, source: EditorSource): string {
