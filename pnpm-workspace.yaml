@@ -1,0 +1,8 @@
+packages:
+  - '**'
+
+onlyBuiltDependencies:
+  - '@vscode/vsce-sign'
+  - esbuild
+  - keytar
+  - merfolk-editor
