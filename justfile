@@ -28,9 +28,6 @@ package-vsix:
     set -e
     echo "📦 Packaging vscode-merfolk extension as VSIX..."
 
-    # Build & copy merfolk-editor standalone (idempotent)
-    pnpm run prepare:merfolk
-
     # Package the extension with a consistent name (no version in filename)
     echo "📦 Creating VSIX package..."
     npx vsce package --out vscode-merfolk.vsix
