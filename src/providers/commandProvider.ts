@@ -35,12 +35,22 @@ export class CommandProvider extends BaseService implements ICommandProvider {
 
         
         // Register unified MermaidChart commands for CodeLens actions
-        this.registerCommand('mermaidChart.preview', async (documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }) => {
+        this.registerCommand('mermaidChart.preview', async (documentUri?: vscode.Uri, linkInfo?: unknown) => {
             try {
+                const normalizedLink = this.normalizeLinkInfo(linkInfo);
+                const baseUri = this.normalizeUri(documentUri) ?? vscode.window.activeTextEditor?.document.uri;
+                if (!normalizedLink) {
+                    vscode.window.showErrorMessage('MermaidChart 链接缺少路径');
+                    return;
+                }
+                if (!baseUri) {
+                    vscode.window.showErrorMessage('未找到用于解析路径的基准文件');
+                    return;
+                }
                 await this.previewService.previewMermaidById(
-                    documentUri,
-                    linkInfo.filePath,
-                    linkInfo.id
+                    baseUri,
+                    normalizedLink.filePath,
+                    normalizedLink.id
                 );
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : String(error);
@@ -48,13 +58,24 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             }
         });
 
-        this.registerCommand('mermaidChart.openFile', async (documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }) => {
+        this.registerCommand('mermaidChart.openFile', async (documentUri?: vscode.Uri, linkInfo?: unknown) => {
             try {
-                const document = await this.fileService.openFile(linkInfo.filePath, documentUri);
+                const normalizedLink = this.normalizeLinkInfo(linkInfo);
+                const baseUri = this.normalizeUri(documentUri) ?? vscode.window.activeTextEditor?.document.uri;
+                if (!normalizedLink) {
+                    vscode.window.showErrorMessage('MermaidChart 链接缺少路径');
+                    return;
+                }
+                if (!baseUri) {
+                    vscode.window.showErrorMessage('未找到用于解析路径的基准文件');
+                    return;
+                }
+
+                const document = await this.fileService.openFile(normalizedLink.filePath, baseUri);
 
                 // For markdown files with ID, navigate to the specific line
-                if (linkInfo.id && this.fileService.isMarkdownFile(document)) {
-                    const line = await this.markdownService.getLineForId(document, linkInfo.id);
+                if (normalizedLink.id && this.fileService.isMarkdownFile(document)) {
+                    const line = await this.markdownService.getLineForId(document, normalizedLink.id);
 
                     if (line !== null && line >= 0) {
                         // Show the document and navigate to the line
@@ -72,13 +93,13 @@ export class CommandProvider extends BaseService implements ICommandProvider {
                         editor.selection = new vscode.Selection(range.start, range.end);
 
                         vscode.window.showInformationMessage(
-                            `Opened ${linkInfo.filePath} and navigated to ID "${linkInfo.id}"`
+                            `Opened ${normalizedLink.filePath} and navigated to ID "${normalizedLink.id}"`
                         );
                     } else {
                         // ID not found, just open the file
                         await vscode.window.showTextDocument(document);
                         vscode.window.showWarningMessage(
-                            `Opened ${linkInfo.filePath}, but ID "${linkInfo.id}" was not found`
+                            `Opened ${normalizedLink.filePath}, but ID "${normalizedLink.id}" was not found`
                         );
                     }
                 } else {
@@ -92,15 +113,16 @@ export class CommandProvider extends BaseService implements ICommandProvider {
         });
 
         // 使用 Merfolk Editor 打开当前文件或 MermaidChart 链接
-        this.registerCommand('merfolkEditor.open', async (documentUri?: vscode.Uri, linkInfo?: { filePath: string; id?: string }) => {
+        this.registerCommand('merfolkEditor.open', async (documentUri?: vscode.Uri, linkInfo?: unknown) => {
             try {
-                if (linkInfo) {
-                    const baseUri = documentUri ?? vscode.window.activeTextEditor?.document.uri;
+                const normalizedLink = this.normalizeLinkInfo(linkInfo);
+                if (normalizedLink) {
+                    const baseUri = this.normalizeUri(documentUri) ?? vscode.window.activeTextEditor?.document.uri;
                     if (!baseUri) {
                         vscode.window.showErrorMessage('未找到用于解析路径的基准文件');
                         return;
                     }
-                    await this.merfolkEditorService.openLink(baseUri, linkInfo);
+                    await this.merfolkEditorService.openLink(baseUri, normalizedLink);
                     return;
                 }
 
@@ -110,8 +132,9 @@ export class CommandProvider extends BaseService implements ICommandProvider {
                     return;
                 }
 
-                if (documentUri) {
-                    const doc = await vscode.workspace.openTextDocument(documentUri);
+                const normalizedUri = this.normalizeUri(documentUri);
+                if (normalizedUri) {
+                    const doc = await vscode.workspace.openTextDocument(normalizedUri);
                     if (this.isMermaidFile(doc)) {
                         await this.merfolkEditorService.openDocument(doc);
                         return;
@@ -159,5 +182,53 @@ export class CommandProvider extends BaseService implements ICommandProvider {
     private isMermaidFile(document: vscode.TextDocument): boolean {
         const fileName = document.fileName.toLowerCase();
         return fileName.endsWith('.mmd') || fileName.endsWith('.mermaid');
+    }
+
+    private normalizeUri(input?: unknown): vscode.Uri | undefined {
+        if (input instanceof vscode.Uri) {
+            return input;
+        }
+
+        const candidate = input as { uri?: unknown; document?: { uri?: unknown } } | undefined;
+        if (candidate?.uri instanceof vscode.Uri) {
+            return candidate.uri;
+        }
+        if (candidate?.document?.uri instanceof vscode.Uri) {
+            return candidate.document.uri;
+        }
+
+        return undefined;
+    }
+
+    private normalizeLinkInfo(input?: unknown): { filePath: string; id?: string } | undefined {
+        if (!input) {
+            return undefined;
+        }
+
+        if (typeof input === 'string') {
+            const trimmed = input.trim();
+            return trimmed ? { filePath: trimmed } : undefined;
+        }
+
+        if (typeof input !== 'object') {
+            return undefined;
+        }
+
+        const candidate = input as { filePath?: unknown; path?: unknown; id?: unknown };
+        const rawPath = typeof candidate.filePath === 'string'
+            ? candidate.filePath
+            : typeof candidate.path === 'string'
+                ? candidate.path
+                : '';
+        const filePath = rawPath.trim();
+        if (!filePath) {
+            return undefined;
+        }
+
+        const id = typeof candidate.id === 'string' && candidate.id.trim()
+            ? candidate.id.trim()
+            : undefined;
+
+        return { filePath, id };
     }
 }

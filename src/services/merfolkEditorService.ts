@@ -69,7 +69,13 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
      */
     public async openLink(documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }): Promise<void> {
         try {
-            const targetUri = this.fileService.resolvePath(linkInfo.filePath, documentUri);
+            const filePath = linkInfo.filePath?.trim();
+            if (!filePath) {
+                vscode.window.showErrorMessage('Mermaid 链接缺少路径');
+                return;
+            }
+
+            const targetUri = this.fileService.resolvePath(filePath, documentUri);
             const targetDoc = await vscode.workspace.openTextDocument(targetUri);
 
             if (isMermaidFile(targetDoc)) {
@@ -428,7 +434,7 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
                 } else {
                     const container = document.getElementById('editor-container');
                     if (container) {
-                        container.innerHTML = '<div style="padding:12px;color:var(--vscode-errorForeground);">未找到 merfolk-editor 库，请检查 merfolk.editor.standalonePath 设置。</div>';
+                        container.innerHTML = '<div style="padding:12px;color:var(--vscode-errorForeground);">未找到 merfolk-editor 库，请检查扩展资源是否包含 merfolk-editor 产物。</div>';
                     }
                 }
             });

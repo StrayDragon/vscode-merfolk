@@ -78,11 +78,6 @@
           "minimum": 100,
           "maximum": 1000,
           "description": "Debounce delay for syntax highlighting updates in milliseconds"
-        },
-        "merfolk.editor.standalonePath": {
-          "type": "string",
-          "default": "",
-          "description": "Merfolk Editor 本地构建目录，需包含 merfolk-editor.iife.js 与 merfolk-editor.css；默认使用打包内置的 assets/merfolk-editor 或 node_modules/merfolk-editor/dist/standalone（devDependency github:StrayDragon/merfolk-editor#main）。如需自定义，可手动指定 dist/standalone 路径"
         }
       }
     },
@@ -107,6 +102,7 @@
       {
         "command": "merfolkEditor.open",
         "title": "Mermaid: 使用 Merfolk Editor 打开",
+        "icon": "$(edit)",
         "category": "Merfolk"
       },
       {

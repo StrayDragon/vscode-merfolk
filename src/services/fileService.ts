@@ -17,16 +17,21 @@ export class FileService extends BaseService implements IFileService {
      * Priority: absolute path > relative to current file's directory > relative to workspace root
      */
     public resolvePath(relativePath: string, baseUri: vscode.Uri): vscode.Uri {
+        const normalizedPath = typeof relativePath === 'string' ? relativePath.trim() : '';
+        if (!normalizedPath) {
+            throw new Error('MermaidChart 链接缺少路径');
+        }
+
         // If it's already an absolute path, return it directly
-        if (path.isAbsolute(relativePath)) {
-            return vscode.Uri.file(relativePath);
+        if (path.isAbsolute(normalizedPath)) {
+            return vscode.Uri.file(normalizedPath);
         }
 
         // Get the directory of the current file
         const currentFileDir = path.dirname(baseUri.fsPath);
 
         // First, try to resolve relative to the current file's directory
-        const relativeToFile = path.resolve(currentFileDir, relativePath);
+        const relativeToFile = path.resolve(currentFileDir, normalizedPath);
 
         // Check if the file exists relative to the current file
         try {
@@ -40,7 +45,7 @@ export class FileService extends BaseService implements IFileService {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (workspaceFolders && workspaceFolders.length > 0) {
             const workspaceRoot = workspaceFolders[0].uri.fsPath;
-            const relativeToWorkspace = path.resolve(workspaceRoot, relativePath);
+            const relativeToWorkspace = path.resolve(workspaceRoot, normalizedPath);
 
             // Check if the file exists relative to workspace root
             try {
