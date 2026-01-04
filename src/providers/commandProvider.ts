@@ -136,6 +136,28 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             }
         });
 
+        this.registerCommand('mermaid.editMarkdownBlock', async (documentUri?: vscode.Uri, blockInfo?: unknown) => {
+            try {
+                const baseUri = this.normalizeUri(documentUri) ?? vscode.window.activeTextEditor?.document.uri;
+                if (!baseUri) {
+                    vscode.window.showErrorMessage('未找到用于解析 Mermaid 代码块的文档');
+                    return;
+                }
+
+                const normalizedBlock = this.normalizeBlockInfo(blockInfo);
+                if (!normalizedBlock) {
+                    vscode.window.showErrorMessage('Mermaid 代码块位置无效');
+                    return;
+                }
+
+                const document = await vscode.workspace.openTextDocument(baseUri);
+                await this.merfolkEditorService.openMarkdownBlock(document, normalizedBlock.startLine);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to edit Mermaid block: ${errorMessage}`);
+            }
+        });
+
         // 使用 Merfolk Editor 打开当前文件或 MermaidChart 链接
         this.registerCommand('merfolkEditor.open', async (documentUri?: vscode.Uri, linkInfo?: unknown) => {
             try {

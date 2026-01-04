@@ -127,6 +127,7 @@ export interface ISyntaxHighlightService {
 export interface IMerfolkEditorService {
     openDocument(document: vscode.TextDocument): Promise<void>;
     openLink(documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }): Promise<void>;
+    openMarkdownBlock(document: vscode.TextDocument, startLine: number): Promise<void>;
     createAndOpen(): Promise<void>;
     dispose(): void;
 }
@@ -289,6 +290,12 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
                 codeLenses.push(new vscode.CodeLens(range, {
                     title: "Preview",
                     command: "mermaid.previewMarkdownBlock",
+                    arguments: [document.uri, { startLine: i }]
+                }));
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Edit",
+                    command: "mermaid.editMarkdownBlock",
                     arguments: [document.uri, { startLine: i }]
                 }));
 

@@ -16,7 +16,7 @@ type EditorSource =
         uri: vscode.Uri;
         content: string;
         fileLabel: string;
-        id: string;
+        id?: string;
         startLine: number;
         endLine: number;
     };
@@ -121,6 +121,39 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
             const message = error instanceof Error ? error.message : String(error);
             vscode.window.showErrorMessage(`无法打开 Mermaid 链接: ${message}`);
         }
+    }
+
+    /**
+     * 通过 Markdown 中的 Mermaid 代码块起始行打开
+     */
+    public async openMarkdownBlock(document: vscode.TextDocument, startLine: number): Promise<void> {
+        if (document.languageId !== 'markdown' && !isMarkdownFile(document)) {
+            vscode.window.showErrorMessage('当前文件不是 Markdown 文件 (.md)');
+            return;
+        }
+
+        if (startLine < 0 || startLine >= document.lineCount) {
+            vscode.window.showErrorMessage('Mermaid 代码块起始行无效');
+            return;
+        }
+
+        const startText = document.lineAt(startLine).text;
+        if (!this.isMermaidFenceStart(startText)) {
+            vscode.window.showErrorMessage('指定行不是 Mermaid 代码块起始行');
+            return;
+        }
+
+        const rangeInfo = this.extractMermaidRange(document, startLine);
+        const source: EditorSource = {
+            kind: 'markdown',
+            uri: document.uri,
+            content: rangeInfo.content,
+            fileLabel: `${path.basename(document.fileName)} @line ${startLine + 1}`,
+            startLine: rangeInfo.startLine,
+            endLine: rangeInfo.endLine
+        };
+
+        await this.showEditor(source);
     }
 
     /**
@@ -260,6 +293,11 @@ export class MerfolkEditorService extends BaseService implements IMerfolkEditorS
         );
 
         return { content, startLine, endLine };
+    }
+
+    private isMermaidFenceStart(line: string): boolean {
+        const trimmed = line.trim().toLowerCase();
+        return trimmed.startsWith('```mermaid') || trimmed.startsWith('```mmd');
     }
 
     private async saveContent(source: EditorSource, code: string): Promise<void> {

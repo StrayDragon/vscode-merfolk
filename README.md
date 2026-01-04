@@ -69,7 +69,7 @@ graph TB
 
 ### Markdown 代码块预览
 
-在 Markdown 文件的 <code>```mermaid</code> 代码块顶部会显示 **Preview** CodeLens，可一键预览单个 Mermaid 代码块内容，适合在长文档里快速查看某一段图表。
+在 Markdown 文件的 <code>```mermaid</code> 代码块顶部会显示 **Preview** 和 **Edit** CodeLens，分别用于单块预览与通过 Merfolk Editor 打开编辑，适合在长文档里快速处理某一段图表。
 
 ### 图表导出
 
