@@ -101,6 +101,22 @@ export class PreviewService extends BaseService implements IPreviewService {
     }
 
     /**
+     * Preview Mermaid content directly (e.g. markdown code blocks)
+     */
+    public previewMermaidContent(content: string, sourceInfo: { filePath: string; id?: string }): void {
+        if (!content.trim()) {
+            vscode.window.showErrorMessage('No Mermaid content to preview');
+            return;
+        }
+
+        PreviewPanel.createOrShowWithContent(
+            content,
+            sourceInfo,
+            this.context.extensionUri
+        );
+    }
+
+    /**
      * Dispose of resources
      */
     public dispose(): void {

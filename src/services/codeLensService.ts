@@ -53,15 +53,24 @@ export class CodeLensService extends BaseService implements ICodeLensService {
                 }, delay);
             };
 
+            const hasMermaidSignals = (value: string): boolean => {
+                if (value.includes('[MermaidChart:')) {
+                    return true;
+                }
+
+                const lower = value.toLowerCase();
+                return lower.includes('```mermaid') || lower.includes('```mmd');
+            };
+
             // Listen for document changes to refresh CodeLens (debounced)
             const onDidChangeTextDocument = vscode.workspace.onDidChangeTextDocument((event) => {
-                // Only refresh if the document contains MermaidChart patterns and is the active editor
+                // Only refresh if Mermaid markers change in the active editor
                 const activeEditor = vscode.window.activeTextEditor;
                 if (activeEditor && event.document === activeEditor.document) {
                     // Quick check using content changes to avoid full text scan
                     const hasMermaidChart = event.contentChanges.some(change =>
-                        change.text.includes('[MermaidChart:') ||
-                        (change.rangeLength > 0 && event.document.getText(change.range).includes('[MermaidChart:'))
+                        hasMermaidSignals(change.text) ||
+                        (change.rangeLength > 0 && hasMermaidSignals(event.document.getText(change.range)))
                     );
 
                     if (hasMermaidChart) {
@@ -75,9 +84,9 @@ export class CodeLensService extends BaseService implements ICodeLensService {
             // Listen for active editor changes
             const onDidChangeActiveTextEditor = vscode.window.onDidChangeActiveTextEditor((editor) => {
                 if (editor) {
-                    // Only refresh if the new document contains MermaidChart
+                    // Only refresh if the new document contains Mermaid markers
                     const text = editor.document.getText();
-                    if (text.includes('[MermaidChart:')) {
+                    if (hasMermaidSignals(text)) {
                         debouncedRefresh(500); // Slightly longer delay for editor changes
                     }
                 }
@@ -88,7 +97,7 @@ export class CodeLensService extends BaseService implements ICodeLensService {
             // Initial refresh after extension is fully loaded
             setTimeout(() => {
                 const activeEditor = vscode.window.activeTextEditor;
-                if (activeEditor && activeEditor.document.getText().includes('[MermaidChart:')) {
+                if (activeEditor && hasMermaidSignals(activeEditor.document.getText())) {
                     this.provider.refresh();
                 }
             }, 1000);
