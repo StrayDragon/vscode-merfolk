@@ -1,5 +1,8 @@
 # Justfile for vscode-merfolk
 
+default:
+    @just -l
+
 # Install dependencies
 install:
     #!/usr/bin/env bash
