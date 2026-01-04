@@ -112,6 +112,52 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             }
         });
 
+        this.registerCommand('mermaid.previewMarkdownBlock', async (documentUri?: vscode.Uri, blockInfo?: unknown) => {
+            try {
+                const baseUri = this.normalizeUri(documentUri) ?? vscode.window.activeTextEditor?.document.uri;
+                if (!baseUri) {
+                    vscode.window.showErrorMessage('未找到用于解析 Mermaid 代码块的文档');
+                    return;
+                }
+
+                const normalizedBlock = this.normalizeBlockInfo(blockInfo);
+                if (!normalizedBlock) {
+                    vscode.window.showErrorMessage('Mermaid 代码块位置无效');
+                    return;
+                }
+
+                const document = await vscode.workspace.openTextDocument(baseUri);
+                const content = this.extractMermaidBlockContent(document, normalizedBlock.startLine);
+
+                this.previewService.previewMermaidContent(content, { filePath: document.fileName });
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to preview Mermaid block: ${errorMessage}`);
+            }
+        });
+
+        this.registerCommand('mermaid.editMarkdownBlock', async (documentUri?: vscode.Uri, blockInfo?: unknown) => {
+            try {
+                const baseUri = this.normalizeUri(documentUri) ?? vscode.window.activeTextEditor?.document.uri;
+                if (!baseUri) {
+                    vscode.window.showErrorMessage('未找到用于解析 Mermaid 代码块的文档');
+                    return;
+                }
+
+                const normalizedBlock = this.normalizeBlockInfo(blockInfo);
+                if (!normalizedBlock) {
+                    vscode.window.showErrorMessage('Mermaid 代码块位置无效');
+                    return;
+                }
+
+                const document = await vscode.workspace.openTextDocument(baseUri);
+                await this.merfolkEditorService.openMarkdownBlock(document, normalizedBlock.startLine);
+            } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(`Failed to edit Mermaid block: ${errorMessage}`);
+            }
+        });
+
         // 使用 Merfolk Editor 打开当前文件或 MermaidChart 链接
         this.registerCommand('merfolkEditor.open', async (documentUri?: vscode.Uri, linkInfo?: unknown) => {
             try {
@@ -230,5 +276,77 @@ export class CommandProvider extends BaseService implements ICommandProvider {
             : undefined;
 
         return { filePath, id };
+    }
+
+    private normalizeBlockInfo(input?: unknown): { startLine: number } | undefined {
+        if (typeof input === 'number' && Number.isFinite(input)) {
+            return { startLine: Math.trunc(input) };
+        }
+
+        if (typeof input === 'string') {
+            const parsed = Number.parseInt(input, 10);
+            if (Number.isFinite(parsed)) {
+                return { startLine: parsed };
+            }
+            return undefined;
+        }
+
+        if (!input || typeof input !== 'object') {
+            return undefined;
+        }
+
+        const candidate = input as { startLine?: unknown; line?: unknown };
+        const raw = typeof candidate.startLine === 'number'
+            ? candidate.startLine
+            : typeof candidate.startLine === 'string'
+                ? Number.parseInt(candidate.startLine, 10)
+                : typeof candidate.line === 'number'
+                    ? candidate.line
+                    : typeof candidate.line === 'string'
+                        ? Number.parseInt(candidate.line, 10)
+                        : Number.NaN;
+
+        if (!Number.isFinite(raw)) {
+            return undefined;
+        }
+
+        return { startLine: Math.trunc(raw) };
+    }
+
+    private extractMermaidBlockContent(document: vscode.TextDocument, startLine: number): string {
+        const total = document.lineCount;
+        if (startLine < 0 || startLine >= total) {
+            throw new Error('Mermaid 代码块起始行无效');
+        }
+
+        const startText = document.lineAt(startLine).text;
+        if (!this.isMermaidFenceStart(startText)) {
+            throw new Error('指定行不是 Mermaid 代码块起始行');
+        }
+
+        let endLine = startLine + 1;
+        while (endLine < total) {
+            const text = document.lineAt(endLine).text.trim();
+            if (text === '```') {
+                break;
+            }
+            endLine++;
+        }
+
+        if (endLine >= total) {
+            throw new Error('未找到对应的 ``` 结束符');
+        }
+
+        return document.getText(
+            new vscode.Range(
+                new vscode.Position(startLine + 1, 0),
+                document.lineAt(endLine).range.start
+            )
+        );
+    }
+
+    private isMermaidFenceStart(line: string): boolean {
+        const trimmed = line.trim().toLowerCase();
+        return trimmed.startsWith('```mermaid') || trimmed.startsWith('```mmd');
     }
 }

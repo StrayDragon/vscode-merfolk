@@ -96,6 +96,14 @@
         "title": "Open MermaidChart File"
       },
       {
+        "command": "mermaid.previewMarkdownBlock",
+        "title": "Mermaid: Preview Markdown Block"
+      },
+      {
+        "command": "mermaid.editMarkdownBlock",
+        "title": "Mermaid: Edit Markdown Block"
+      },
+      {
         "command": "mermaidChart.refreshCodeLens",
         "title": "Mermaid: Refresh CodeLens"
       },

@@ -63,6 +63,7 @@ export interface IPreviewService {
     createOrShow(document: vscode.TextDocument): void;
     revive(panel: vscode.WebviewPanel): void;
     previewMermaidById(documentUri: vscode.Uri, filePath: string, id?: string): Promise<void>;
+    previewMermaidContent(content: string, sourceInfo: { filePath: string; id?: string }): void;
     dispose(): void;
 }
 
@@ -126,6 +127,7 @@ export interface ISyntaxHighlightService {
 export interface IMerfolkEditorService {
     openDocument(document: vscode.TextDocument): Promise<void>;
     openLink(documentUri: vscode.Uri, linkInfo: { filePath: string; id?: string }): Promise<void>;
+    openMarkdownBlock(document: vscode.TextDocument, startLine: number): Promise<void>;
     createAndOpen(): Promise<void>;
     dispose(): void;
 }
@@ -178,6 +180,7 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     // Pattern: [MermaidChart: filepath][@id]
     // Groups: 1=file path (up to extension), 2=optional id
     private readonly mermaidChartRegex = /\[MermaidChart:\s*([^\]]+\.(?:md|mmd|mermaid))(?:@([^@\]\s]+))?\s*\]/gi;
+    private readonly mermaidFencePrefix = '```';
 
     provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] | Thenable<vscode.CodeLens[]> {
         // Quick check: if file is too large, skip processing for performance
@@ -211,8 +214,13 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
             });
         }
 
-        // Quick check: if no MermaidChart pattern, return empty immediately
-        if (!text.includes('[MermaidChart:')) {
+        const isMarkdown = document.languageId === 'markdown' || document.fileName.toLowerCase().endsWith('.md');
+        const hasMermaidChart = text.includes('[MermaidChart:');
+        const lowerText = isMarkdown ? text.toLowerCase() : '';
+        const hasMermaidBlocks = isMarkdown && (lowerText.includes('```mermaid') || lowerText.includes('```mmd'));
+
+        // Quick check: if no MermaidChart pattern or Mermaid blocks, return empty immediately
+        if (!hasMermaidChart && !hasMermaidBlocks) {
             return [];
         }
 
@@ -220,45 +228,93 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
         let match;
         let matchCount = 0;
 
-        // Reset regex lastIndex
-        this.mermaidChartRegex.lastIndex = 0;
+        if (hasMermaidChart) {
+            // Reset regex lastIndex
+            this.mermaidChartRegex.lastIndex = 0;
 
-        // Limit matches for performance (max 20 CodeLens per file)
-        while ((match = this.mermaidChartRegex.exec(text)) !== null && matchCount < 20) {
-            matchCount++;
-            const startIndex = match.index;
-            const endIndex = startIndex + match[0].length;
-            const filePath = match[1].trim();
-            const id = match[2]?.trim(); // Optional ID
+            // Limit matches for performance (max 20 CodeLens per file)
+            while ((match = this.mermaidChartRegex.exec(text)) !== null && matchCount < 20) {
+                matchCount++;
+                const startIndex = match.index;
+                const endIndex = startIndex + match[0].length;
+                const filePath = match[1].trim();
+                const id = match[2]?.trim(); // Optional ID
 
-            const startPos = document.positionAt(startIndex);
-            const endPos = document.positionAt(endIndex);
-            const range = new vscode.Range(startPos, endPos);
+                const startPos = document.positionAt(startIndex);
+                const endPos = document.positionAt(endIndex);
+                const range = new vscode.Range(startPos, endPos);
 
-            // Build display title
-            let displayTitle = filePath;
-            if (id) {
-                displayTitle += `@${id}`;
+                // Build display title
+                let displayTitle = filePath;
+                if (id) {
+                    displayTitle += `@${id}`;
+                }
+
+                // Use unified commands for both file types
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Preview",
+                    command: "mermaidChart.preview",
+                    arguments: [document.uri, { filePath, id }]
+                }));
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Open",
+                    command: "mermaidChart.openFile",
+                    arguments: [document.uri, { filePath, id }]
+                }));
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Edit",
+                    command: "merfolkEditor.open",
+                    arguments: [document.uri, { filePath, id }]
+                }));
             }
+        }
 
-            // Use unified commands for both file types
-            codeLenses.push(new vscode.CodeLens(range, {
-                title: "Preview",
-                command: "mermaidChart.preview",
-                arguments: [document.uri, { filePath, id }]
-            }));
+        if (hasMermaidBlocks) {
+            const lines = text.split('\n');
+            let blockCount = 0;
 
-            codeLenses.push(new vscode.CodeLens(range, {
-                title: "Open",
-                command: "mermaidChart.openFile",
-                arguments: [document.uri, { filePath, id }]
-            }));
+            for (let i = 0; i < lines.length && blockCount < 20; i++) {
+                const line = lines[i].trim();
+                if (!this.isMermaidFenceStart(line)) {
+                    continue;
+                }
 
-            codeLenses.push(new vscode.CodeLens(range, {
-                title: "Edit",
-                command: "merfolkEditor.open",
-                arguments: [document.uri, { filePath, id }]
-            }));
+                const lineText = lines[i];
+                const range = new vscode.Range(
+                    new vscode.Position(i, 0),
+                    new vscode.Position(i, lineText.length)
+                );
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Preview",
+                    command: "mermaid.previewMarkdownBlock",
+                    arguments: [document.uri, { startLine: i }]
+                }));
+
+                codeLenses.push(new vscode.CodeLens(range, {
+                    title: "Edit",
+                    command: "mermaid.editMarkdownBlock",
+                    arguments: [document.uri, { startLine: i }]
+                }));
+
+                blockCount++;
+
+                let endLine = i + 1;
+                while (endLine < lines.length) {
+                    if (lines[endLine].trim() === this.mermaidFencePrefix) {
+                        break;
+                    }
+                    endLine++;
+                }
+
+                if (endLine >= lines.length) {
+                    break;
+                }
+
+                i = endLine;
+            }
         }
 
         return codeLenses;
@@ -283,5 +339,13 @@ export class MermaidChartCodeLensProvider implements vscode.CodeLensProvider {
     // Cleanup method to clear cache when extension deactivates
     public dispose(): void {
         MermaidChartCodeLensProvider.documentCache.clear();
+    }
+
+    private isMermaidFenceStart(line: string): boolean {
+        if (!line.startsWith(this.mermaidFencePrefix)) {
+            return false;
+        }
+        const lower = line.toLowerCase();
+        return lower.startsWith('```mermaid') || lower.startsWith('```mmd');
     }
 }
