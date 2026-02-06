@@ -287,26 +287,32 @@ export class PreviewPanel {
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' ${webview.cspSource}; style-src 'unsafe-inline' ${webview.cspSource}; img-src blob: data:; connect-src blob:;">
     <title>Mermaid Preview</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
         body {
             font-family: var(--vscode-font-family);
             font-size: var(--vscode-font-size);
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
-            padding: 20px;
-            margin: 0;
         }
         #container {
             width: 100%;
-            height: 100vh;
+            height: 100%;
             display: flex;
             flex-direction: column;
         }
         #mermaid-diagram {
-            max-width: 100%;
-            max-height: 100%;
-            overflow: hidden;
             width: 100%;
             height: 100%;
+            overflow: hidden;
             cursor: grab;
             position: relative;
         }
@@ -331,29 +337,14 @@ export class PreviewPanel {
             border: 1px solid var(--vscode-inputValidation-errorBorder);
             padding: 10px;
             border-radius: 3px;
-            margin: 10px 0;
+            margin: 10px;
             white-space: pre-wrap;
             font-family: var(--vscode-font-family);
-        }
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: var(--vscode-editor-background);
-            border-bottom: 1px solid var(--vscode-panel-border);
-        }
-        .toolbar button {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-family: var(--vscode-font-family);
-        }
-        .toolbar button:hover {
-            background-color: var(--vscode-button-hoverBackground);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
         }
         .mermaid-link {
             color: var(--vscode-textLink-foreground);
@@ -363,19 +354,43 @@ export class PreviewPanel {
         .mermaid-link:hover {
             text-decoration: none;
         }
+        /* Context Menu Styles */
+        #context-menu {
+            position: fixed;
+            background-color: var(--vscode-menu-background);
+            border: 1px solid var(--vscode-menu-border);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            padding: 4px 0;
+            min-width: 120px;
+            z-index: 1000;
+            display: none;
+        }
+        #context-menu.visible {
+            display: block;
+        }
+        .context-menu-item {
+            padding: 6px 16px;
+            cursor: pointer;
+            color: var(--vscode-menu-foreground);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .context-menu-item:hover {
+            background-color: var(--vscode-menu-selectionBackground);
+            color: var(--vscode-menu-selectionForeground);
+        }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <button onclick="zoomIn()">Zoom In</button>
-        <button onclick="zoomOut()">Zoom Out</button>
-        <button onclick="resetZoom()">Reset</button>
-        <button onclick="fitToScreen()">Fit to Screen</button>
-        <button onclick="exportSvg()">Export SVG</button>
-    </div>
     <div id="container">
         <div id="mermaid-diagram"></div>
         <div id="error" style="display: none;"></div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu">
+        <div class="context-menu-item" id="context-export-svg">Export SVG</div>
     </div>
 
     <!-- Using local Mermaid.js -->
@@ -468,8 +483,16 @@ export class PreviewPanel {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
 
-            // Wheel events for zoom with mouse position
+            // Wheel events for zoom with mouse position (direct zoom, no Ctrl needed)
             newElement.addEventListener('wheel', handleWheel, { passive: false });
+
+            // Context menu (right-click) for export
+            newElement.addEventListener('contextmenu', handleContextMenu);
+        }
+
+        function handleContextMenu(e) {
+            e.preventDefault();
+            showContextMenu(e.clientX, e.clientY);
         }
 
         function handleMouseDown(e) {
@@ -494,23 +517,22 @@ export class PreviewPanel {
         }
 
         function handleWheel(e) {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+            // Direct zoom with mouse wheel (no Ctrl key required)
+            e.preventDefault();
+            const rect = e.currentTarget.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
 
-                const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                const newZoom = Math.max(0.3, Math.min(3, currentZoom * delta));
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(0.3, Math.min(3, currentZoom * delta));
 
-                // Zoom towards mouse position
-                const scaleChange = newZoom - currentZoom;
-                currentPanX -= (x - currentPanX) * (scaleChange / currentZoom);
-                currentPanY -= (y - currentPanY) * (scaleChange / currentZoom);
-                currentZoom = newZoom;
+            // Zoom towards mouse position
+            const scaleChange = newZoom - currentZoom;
+            currentPanX -= (x - currentPanX) * (scaleChange / currentZoom);
+            currentPanY -= (y - currentPanY) * (scaleChange / currentZoom);
+            currentZoom = newZoom;
 
-                applyTransform();
-            }
+            applyTransform();
         }
 
         function processMermaidChartLinks() {
@@ -543,42 +565,6 @@ export class PreviewPanel {
                     });
                 }
             });
-        }
-
-        function zoomIn() {
-            currentZoom = Math.min(currentZoom * 1.2, 3);
-            applyTransform();
-        }
-
-        function zoomOut() {
-            currentZoom = Math.max(currentZoom / 1.2, 0.3);
-            applyTransform();
-        }
-
-        function resetZoom() {
-            currentZoom = 1;
-            currentPanX = 0;
-            currentPanY = 0;
-            applyTransform();
-        }
-
-        function fitToScreen() {
-            const container = document.getElementById('mermaid-diagram');
-            const svg = container?.querySelector('svg');
-            if (!svg || !container) return;
-
-            const containerRect = container.getBoundingClientRect();
-            const svgRect = svg.getBoundingClientRect();
-
-            const scaleX = containerRect.width / svgRect.width;
-            const scaleY = containerRect.height / svgRect.height;
-            currentZoom = Math.min(scaleX, scaleY, 1) * 0.9; // 90% of container
-
-            // Center the diagram
-            currentPanX = (containerRect.width - svgRect.width * currentZoom) / 2;
-            currentPanY = (containerRect.height - svgRect.height * currentZoom) / 2;
-
-            applyTransform();
         }
 
         function applyTransform() {
@@ -623,6 +609,58 @@ export class PreviewPanel {
             return baseName + '.' + extension;
         }
 
+        // Context Menu functionality
+        let contextMenu = null;
+
+        function initContextMenu() {
+            contextMenu = document.getElementById('context-menu');
+            const exportItem = document.getElementById('context-export-svg');
+
+            if (exportItem) {
+                exportItem.addEventListener('click', () => {
+                    exportSvg();
+                    hideContextMenu();
+                });
+            }
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (contextMenu && !contextMenu.contains(e.target)) {
+                    hideContextMenu();
+                }
+            });
+        }
+
+        function showContextMenu(x, y) {
+            if (!contextMenu) return;
+
+            // Check if menu would go off screen
+            const menuWidth = 120;
+            const menuHeight = 40;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            let adjustedX = x;
+            let adjustedY = y;
+
+            if (x + menuWidth > windowWidth) {
+                adjustedX = windowWidth - menuWidth - 10;
+            }
+            if (y + menuHeight > windowHeight) {
+                adjustedY = windowHeight - menuHeight - 10;
+            }
+
+            contextMenu.style.left = adjustedX + 'px';
+            contextMenu.style.top = adjustedY + 'px';
+            contextMenu.classList.add('visible');
+        }
+
+        function hideContextMenu() {
+            if (contextMenu) {
+                contextMenu.classList.remove('visible');
+            }
+        }
+
         // Listen for messages from the extension
         window.addEventListener('message', async event => {
             const message = event.data;
@@ -638,6 +676,9 @@ export class PreviewPanel {
                     break;
             }
         });
+
+        // Initialize context menu
+        initContextMenu();
 
         // Initial render
         renderMermaid('').catch(console.error);
