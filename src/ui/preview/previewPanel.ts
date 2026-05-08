@@ -380,6 +380,42 @@ export class PreviewPanel {
             background-color: var(--vscode-menu-selectionBackground);
             color: var(--vscode-menu-selectionForeground);
         }
+        /* Prevent text truncation in Mermaid diagrams */
+        #mermaid-diagram .node,
+        #mermaid-diagram .edgeLabel,
+        #mermaid-diagram .cluster label {
+            white-space: nowrap;
+            overflow: visible;
+        }
+        #mermaid-diagram foreignObject {
+            overflow: visible !important;
+            /* Allow foreignObject to expand */
+            width: auto !important;
+            height: auto !important;
+        }
+        #mermaid-diagram foreignObject div {
+            /* Prevent unwanted line breaks in identifiers */
+            white-space: nowrap !important;
+            overflow: visible !important;
+            /* But allow long words to break if absolutely necessary */
+            overflow-wrap: break-word !important;
+            word-break: keep-all !important;
+        }
+        #mermaid-diagram .label {
+            white-space: nowrap !important;
+            line-height: 1.2 !important;
+        }
+        #mermaid-diagram text {
+            white-space: nowrap !important;
+        }
+        /* Ensure node boxes expand to fit content */
+        #mermaid-diagram .node rect,
+        #mermaid-diagram .node circle,
+        #mermaid-diagram .node ellipse,
+        #mermaid-diagram .node polygon,
+        #mermaid-diagram .node path {
+            overflow: visible !important;
+        }
     </style>
 </head>
 <body>
@@ -410,7 +446,13 @@ export class PreviewPanel {
             },
             fontFamily: 'var(--vscode-font-family)',
             fontSize: 16,
-            securityLevel: 'loose'
+            securityLevel: 'loose',
+            // Prevent text truncation
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis'
+            }
         });
 
         const vscode = acquireVsCodeApi();
